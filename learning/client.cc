@@ -3,13 +3,15 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <iostream>
 #define PORT 8080
- 
+
+
 int main(int argc, char const* argv[])
 {
     int sock = 0, valread, client_fd;
     sockaddr_in serv_addr;
-    char* hello = "Hello from client";
+    // char* msg = "Hello from client";
     char buffer[1024] = { 0 };
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("\n Socket creation error \n");
@@ -21,7 +23,8 @@ int main(int argc, char const* argv[])
  
     // Convert IPv4 and IPv6 addresses from text to binary
     // form
-    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)
+    // 172.20.10.2
+    if (inet_pton(AF_INET, "10.250.14.21", &serv_addr.sin_addr)
         <= 0) {
         printf(
             "\nInvalid address/ Address not supported \n");
@@ -35,10 +38,13 @@ int main(int argc, char const* argv[])
         printf("\nConnection Failed \n");
         return -1;
     }
-    send(sock, hello, strlen(hello), 0);
-    printf("Hello message sent\n");
+
+    float vals[4] = {3.14, 2.27, 69, 4.20};
+    char* msg = "Hello there";
+    send(sock, msg, strlen(msg), 0);
+    // printf("Message sent\n");
     valread = read(sock, buffer, 1024);
-    printf("%s\n", buffer);
+    printf("Server: %s\n", buffer);
  
     // closing the connected socket
     close(client_fd);
