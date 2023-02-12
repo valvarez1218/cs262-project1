@@ -1,5 +1,4 @@
 #include <string>
-
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,11 +11,11 @@
 #define CREATE_ACCOUNT              1
 #define LOGIN                       2
 #define LOGOUT                      3
-#define LIST_USERS                  3
-#define SEND_MESSAGE                4
-#define QUERY_NOTIFICATIONS         5
-#define QUERY_MESSAGES              6
-#define DELETE_ACCOUNT              7
+#define LIST_USERS                  4
+#define SEND_MESSAGE                5
+#define QUERY_NOTIFICATIONS         6
+#define QUERY_MESSAGES              7
+#define DELETE_ACCOUNT              8
 #define MESSAGES_SEEN               9
 
 // Server->Client Messages
@@ -36,7 +35,7 @@
 // This is a value corresponding to the supported operations
 typedef char opCode;
 
-const int NotImplemented = 505;
+const int NotImplementedException = 505;
 
 const size_t g_UsernameLimit = 31;
 const size_t g_PasswordLimit = 31;
@@ -52,7 +51,11 @@ struct Message {
     opCode operation;
 
     virtual bool parse (int socket_fd) {
-        throw NotImplemented;
+        throw NotImplementedException;
+    };
+
+    virtual void populate (std::vector<std::string> inputFields) {
+        throw std::runtime_error("'populate' method not implemented for class ");
     };
 };
 
@@ -83,6 +86,16 @@ struct CreateAccountMessage : Message {
 
         return true;
     }
+
+    void populate (std::vector<std::string> inputField) {
+        if (inputField.size() > 2) {
+            throw std::invalid_argument("Number of inputs does not match number of fields to create account.");
+        }
+
+        for (std::string s : inputField) {
+            
+        }
+    }
 };
 
 
@@ -109,9 +122,9 @@ struct LoginMessage : Message {
     }
 };
 
-struct LogOutMessage : Message  {
+struct LogoutMessage : Message  {
     
-    LogOutMessage () {
+    LogoutMessage () {
         operation = LOGOUT;
     }
 };
