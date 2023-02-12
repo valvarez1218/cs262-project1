@@ -47,6 +47,11 @@ const size_t g_ClientPasswordLimit = 30;
 const size_t g_ClientMessageLimit = 1000;
 
 
+std::string characterError(std::string field, std::string fieldValue, size_t limit) {
+    return "The " + field + " field takes input of at most " + std::to_string(limit) +
+            " characters.\n '" + fieldValue + "' is too long.";
+}
+
 struct Message {
     opCode operation;
 
@@ -55,7 +60,7 @@ struct Message {
     };
 
     virtual void populate (std::vector<std::string> inputFields) {
-        throw std::runtime_error("'populate' method not implemented for class ");
+        throw std::runtime_error("'populate' method not implemented for this class.");
     };
 };
 
@@ -64,6 +69,7 @@ struct Reply {
     opCode operation;
     int errno;
 };
+
 
 struct CreateAccountMessage : Message {
     char userName[g_UsernameLimit] = {0};
@@ -88,12 +94,28 @@ struct CreateAccountMessage : Message {
     }
 
     void populate (std::vector<std::string> inputField) {
-        if (inputField.size() > 2) {
-            throw std::invalid_argument("Number of inputs does not match number of fields to create account.");
+        if (inputField.size() != 2) {
+            throw std::invalid_argument("create_account takes 2 inputs: username password");
         }
 
-        for (std::string s : inputField) {
-            
+        for (int idx = 0; idx < inputField.size(); idx++) {
+            if (idx == 0) {
+                std::string input = inputField[idx];
+                if (input.size() > g_UsernameLimit) {
+                    std::string errorMessage = characterError("username", input, g_UsernameLimit);
+                    throw std::invalid_argument(errorMessage);
+                }
+                strcpy(userName, input.c_str());
+            }
+
+            if (idx == 1) {
+                std::string input = inputField[idx];
+                if (input.size() > g_PasswordLimit) {
+                    std::string errorMessage = characterError("password", input, g_PasswordLimit);
+                    throw std::invalid_argument(errorMessage);
+                }
+                strcpy(password, input.c_str());
+            }
         }
     }
 };
@@ -120,12 +142,44 @@ struct LoginMessage : Message {
 
         return true;
     }
+
+    void populate(std::vector<std::string> inputField) {
+        if (inputField.size() != 2) {
+            throw std::invalid_argument("login takes 2 inputs: username password");
+        }
+
+        for (int idx = 0; idx < inputField.size(); idx++) {
+            if (idx == 0) {
+                std::string input = inputField[idx];
+                if (input.size() > g_UsernameLimit) {
+                    std::string errorMessage = characterError("username", input, g_UsernameLimit);
+                    throw std::invalid_argument(errorMessage);
+                }
+                strcpy(userName, input.c_str());
+            }
+
+            if (idx == 1) {
+                std::string input = inputField[idx];
+                if (input.size() > g_PasswordLimit) {
+                    std::string errorMessage = characterError("password", input, g_PasswordLimit);
+                    throw std::invalid_argument(errorMessage);
+                }
+                strcpy(password, input.c_str());
+            }
+        }
+    }
 };
 
 struct LogoutMessage : Message  {
     
     LogoutMessage () {
         operation = LOGOUT;
+    }
+
+    void populate(std::vector<std::string> inputs) {
+        if (inputs.size() != 0) {
+            throw std::invalid_argument("logout takes 0 inputs.");
+        }
     }
 };
 
@@ -140,6 +194,20 @@ struct ListUsersMessage : Message {
     bool parse (int socket_fd) {
         ssize_t valread = read(socket_fd, &prefix[30], g_UsernameLimit);
         return valread == -1 ? false : true;
+    }
+
+    void populate(std::vector<std::string> inputs) {
+        if (inputs.size() > 1) {
+            throw std::invalid_argument("list_users takes one optional input: username_prefix");
+        }
+
+        if (inputs.size() == 1) {
+            if (inputs[0].size() > g_UsernameLimit) {
+                std::string errorMessage = characterError("username", inputs[0], g_UsernameLimit);
+                throw std::invalid_argument(errorMessage);
+            }
+            strcpy(prefix, inputs[0].c_str());
+        }
     }
 };
 
@@ -160,6 +228,30 @@ struct SendMessageMessage : Message {
 
         valread = read(socket_fd, &messageContent[0], g_MessageLimit);
         return valread == -1 ? false : true;
+    }
+
+    void populate (std::vector<std::string> inputs) {
+        if (inputs.size() != 2) {
+            throw std::invalid_argument("send takes 2 inputs: recipient_username message_content");
+        }
+
+        for (int idx = 0; idx < inputs.size(); idx++) {
+            if (idx == 0) {
+                if (inputs[idx].size() > g_UsernameLimit) {
+                    std::string errorMessage = characterError("username", inputs[idx], g_UsernameLimit);
+                    throw std::invalid_argument(errorMessage);
+                }
+                strcpy(recipientUsername, inputs[idx].c_str());
+            }
+
+            if (idx == 1) {
+                if (inputs[idx].size() > g_MessageLimit) {
+                    std::string errorMessage = characterError("message_content", inputs[idx], g_MessageLimit);
+                    throw std::invalid_argument(errorMessage);
+                }
+                strcpy(messageContent, inputs[idx].c_str());
+            }
+        }
     }
 };
 

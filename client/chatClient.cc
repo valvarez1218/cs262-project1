@@ -1,4 +1,3 @@
-#include "../messageTypes.h"
 #include "userOperations.h"
 
 #include <iomanip>
@@ -24,6 +23,7 @@ const std::unordered_map<std::string, opCode> operationMap {
 const size_t g_InputLimit = 1303;
 bool g_ProgramRunning = true;
 int server_socket = 0;
+int client_fd;
 
 
 // FUNCTION DECLARATIONS
@@ -35,16 +35,42 @@ void printUsage();
 
 int main (void) {
 
-    // TODO: establish connection to server
+    sockaddr_in serv_addr;
+    if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("\n Socket Creation Error \n");
+        return -1;
+    }
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT);
+    bool connected_to_server = false;
+
+    while (!connected_to_server) {
+        std::string ip_addr;
+        std::cout << "Input IP Address of Server: ";
+        std::cin >> ip_addr;
+        if (inet_pton(AF_INET, ip_addr.c_str(), &serv_addr.sin_addr) <= 0) {
+            printf("\nInvalid address/ Address not supported \n");
+            continue;
+        }
+
+        if ((client_fd = connect(server_socket, (sockaddr*)&serv_addr, sizeof(serv_addr))) < 0) {
+            printf("\n Connection Failed \n");
+            continue;
+        }
+
+        connected_to_server = true;
+    }
 
 
+
+    // Main loop for user
     char userInput[g_InputLimit];
-
+    std::cin.ignore();
     while(g_ProgramRunning) {
         if (!takeInput(userInput)) {
             continue;
         }
-        
 
         try {
             parseInput(userInput);
@@ -104,7 +130,9 @@ void parseInput (std::string userInput) {
         end = userInput.find(delimiter, start);
     }
     std::string substr = userInput.substr(start, std::string::npos);
-    remainingInputVector.push_back(substr);
+    if (substr.size() != 0) {
+        remainingInputVector.push_back(substr);
+    }
 
 
     Message* message;
@@ -118,7 +146,8 @@ void parseInput (std::string userInput) {
                     message->populate(remainingInputVector);
                     createAccount(server_socket, msg);
                 } catch (std::runtime_error &e) {
-                    std::cout << e.what() << "CreateAccountMessage" << std::endl;
+                    std::cout << "In Case CREATE_ACCOUNT:" << std::endl;
+                    std::cout << e.what() << std::endl;
                 } catch (std::invalid_argument &e) {
                     std::cout << e.what() << std::endl;
                 }
@@ -191,7 +220,7 @@ void parseInput (std::string userInput) {
                 message = &msg;
                 try {
                     message->populate(remainingInputVector);
-                    queryNotification(server_socket, msg);
+                    queryNotifications(server_socket, msg);
                 } catch (std::runtime_error &e) {
                     std::cout << e.what() << "QueryNotificationsMessage" << std::endl;
                 } catch (std::invalid_argument &e) {
