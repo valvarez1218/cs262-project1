@@ -17,7 +17,7 @@ const std::unordered_map<std::string, opCode> operationMap {
     {"send",                        SEND_MESSAGE},
     {"query_notifications",         QUERY_NOTIFICATIONS},
     {"query_messages",              QUERY_MESSAGES},
-    {"delete",                      DELETE_ACCOUNT},
+    {"delete_account",              DELETE_ACCOUNT},
 };
 
 const size_t g_InputLimit = 1303;

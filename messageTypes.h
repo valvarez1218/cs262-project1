@@ -42,9 +42,9 @@ const size_t g_PasswordLimit = 31;
 const size_t g_MessageLimit = 1001;
 const size_t g_MessageQueryLimit = 20;
 
-const size_t g_ClientUsernameLimit = 30;
-const size_t g_ClientPasswordLimit = 30;
-const size_t g_ClientMessageLimit = 1000;
+const size_t g_ClientUsernameLimit = g_UsernameLimit - 1;
+const size_t g_ClientPasswordLimit = g_PasswordLimit - 1;
+const size_t g_ClientMessageLimit = g_MessageLimit - 1;
 
 
 std::string characterError(std::string field, std::string fieldValue, size_t limit) {
@@ -100,21 +100,23 @@ struct CreateAccountMessage : Message {
 
         for (int idx = 0; idx < inputField.size(); idx++) {
             if (idx == 0) {
-                std::string input = inputField[idx];
-                if (input.size() > g_UsernameLimit) {
-                    std::string errorMessage = characterError("username", input, g_UsernameLimit);
+                std::string user = inputField[idx];
+                if (user.size() > g_ClientUsernameLimit) {
+                    std::string errorMessage = characterError("username", user, g_ClientUsernameLimit);
                     throw std::invalid_argument(errorMessage);
                 }
-                strcpy(userName, input.c_str());
+                user += '\0';
+                strcpy(userName, user.c_str());
             }
 
             if (idx == 1) {
-                std::string input = inputField[idx];
-                if (input.size() > g_PasswordLimit) {
-                    std::string errorMessage = characterError("password", input, g_PasswordLimit);
+                std::string pass_word = inputField[idx];
+                if (pass_word.size() > g_ClientPasswordLimit) {
+                    std::string errorMessage = characterError("password", pass_word, g_ClientPasswordLimit);
                     throw std::invalid_argument(errorMessage);
                 }
-                strcpy(password, input.c_str());
+                pass_word += '\0';
+                strcpy(password, pass_word.c_str());
             }
         }
     }
@@ -150,21 +152,23 @@ struct LoginMessage : Message {
 
         for (int idx = 0; idx < inputField.size(); idx++) {
             if (idx == 0) {
-                std::string input = inputField[idx];
-                if (input.size() > g_UsernameLimit) {
-                    std::string errorMessage = characterError("username", input, g_UsernameLimit);
+                std::string user = inputField[idx];
+                if (user.size() > g_ClientUsernameLimit) {
+                    std::string errorMessage = characterError("username", user, g_ClientUsernameLimit);
                     throw std::invalid_argument(errorMessage);
                 }
-                strcpy(userName, input.c_str());
+                user += '\0';
+                strcpy(userName, user.c_str());
             }
 
             if (idx == 1) {
-                std::string input = inputField[idx];
-                if (input.size() > g_PasswordLimit) {
-                    std::string errorMessage = characterError("password", input, g_PasswordLimit);
+                std::string pass_word = inputField[idx];
+                if (pass_word.size() > g_ClientPasswordLimit) {
+                    std::string errorMessage = characterError("password", pass_word, g_ClientPasswordLimit);
                     throw std::invalid_argument(errorMessage);
                 }
-                strcpy(password, input.c_str());
+                pass_word += '\0';
+                strcpy(password, pass_word.c_str());
             }
         }
     }
@@ -202,10 +206,12 @@ struct ListUsersMessage : Message {
         }
 
         if (inputs.size() == 1) {
-            if (inputs[0].size() > g_UsernameLimit) {
-                std::string errorMessage = characterError("username", inputs[0], g_UsernameLimit);
+            std::string input = inputs[0];
+            if (input.size() > g_ClientUsernameLimit) {
+                std::string errorMessage = characterError("username", input, g_ClientUsernameLimit);
                 throw std::invalid_argument(errorMessage);
             }
+            input += '\0';
             strcpy(prefix, inputs[0].c_str());
         }
     }
@@ -237,19 +243,23 @@ struct SendMessageMessage : Message {
 
         for (int idx = 0; idx < inputs.size(); idx++) {
             if (idx == 0) {
-                if (inputs[idx].size() > g_UsernameLimit) {
-                    std::string errorMessage = characterError("username", inputs[idx], g_UsernameLimit);
+                std::string recipient = inputs[idx];
+                if (recipient.size() > g_ClientUsernameLimit) {
+                    std::string errorMessage = characterError("username", recipient, g_ClientUsernameLimit);
                     throw std::invalid_argument(errorMessage);
                 }
-                strcpy(recipientUsername, inputs[idx].c_str());
+                recipient += '\0';
+                strcpy(recipientUsername, recipient.c_str());
             }
 
             if (idx == 1) {
-                if (inputs[idx].size() > g_MessageLimit) {
-                    std::string errorMessage = characterError("message_content", inputs[idx], g_MessageLimit);
+                std::string content = inputs[idx];
+                if (content.size() > g_ClientMessageLimit) {
+                    std::string errorMessage = characterError("message_content", content, g_ClientMessageLimit);
                     throw std::invalid_argument(errorMessage);
                 }
-                strcpy(messageContent, inputs[idx].c_str());
+                content += '\0';
+                strcpy(messageContent, content.c_str());
             }
         }
     }
@@ -262,20 +272,40 @@ struct QueryNotificationsMessage : Message {
     QueryNotificationsMessage() {
         operation = QUERY_NOTIFICATIONS;
     }
+
+    void populate(std::vector<std::string> inputs) {
+        if (inputs.size() != 0) {
+            throw std::invalid_argument("query_notifications takes 0 inputs.");
+        }
+    }    
 };
 
 
 
 struct QueryMessagesMessage : Message {
-    char user[g_UsernameLimit];
+    char username[g_UsernameLimit];
 
     QueryMessagesMessage () {
         operation = QUERY_MESSAGES;
     }
 
     bool parse (int socket_fd) {
-        ssize_t valread = read(socket_fd, &user[0], g_UsernameLimit);
+        ssize_t valread = read(socket_fd, &username[0], g_UsernameLimit);
         return valread == -1 ? false : true;
+    }
+
+    void populate(std::vector<std::string> inputs) {
+        if (inputs.size() != 1) {
+            throw std::invalid_argument("query_messages takes 1 input: username");
+        }
+
+        std::string user = inputs[0];
+        if (user.size() > g_ClientUsernameLimit) {
+            std::string errorMessage = characterError("username", user, g_ClientUsernameLimit);
+            throw std::invalid_argument(errorMessage);
+        }
+        user += '\0';
+        strcpy(username, user.c_str());
     }
 };
 
@@ -296,6 +326,34 @@ struct DeleteAccountMessage : Message {
         }
         valread = read(socket_fd, &password[0], g_PasswordLimit);
         return valread == -1 ? false : true;
+    }
+
+    void populate(std::vector<std::string> inputs) {
+        if (inputs.size() != 2) {
+            throw std::invalid_argument("delete_account takes 2 inputs: username password");
+        }
+
+        for (int idx = 0; idx < inputs.size(); idx++) {
+            if (idx == 0) {
+                std::string user = inputs[idx];
+                if (user.size() > g_ClientUsernameLimit) {
+                    std::string errorMessage = characterError("username", user, g_ClientUsernameLimit);
+                    throw std::invalid_argument(errorMessage);
+                }
+                user += '\0';
+                strcpy(username, user.c_str());
+            }
+
+            if (idx == 1) {
+                std::string pass_word = inputs[idx];
+                if (pass_word.size() > g_ClientPasswordLimit) {
+                    std::string errorMessage = characterError("password", pass_word, g_ClientPasswordLimit);
+                    throw std::invalid_argument(errorMessage);
+                }
+                pass_word += '\0';
+                strcpy(password, pass_word.c_str());
+            }
+        }
     }
 };
 
