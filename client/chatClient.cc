@@ -20,14 +20,20 @@ const std::unordered_map<std::string, opCode> operationMap {
     {"delete_account",              DELETE_ACCOUNT},
 };
 
+// Limit to the number of characters the command line will read
 const size_t g_InputLimit = 1303;
+
+// Boolean determining whether program is still running
 bool g_ProgramRunning = true;
+
+// Boolean determining whether the user has logged in
+bool USER_LOGGED_IN = false;
+
 int server_socket = 0;
 int client_fd;
 
 
 // FUNCTION DECLARATIONS
-
 void parseInput (std::string userInput);
 bool takeInput (char (&inputBuffer)[g_InputLimit]);
 void printUsage();
@@ -88,6 +94,8 @@ int main (void) {
     return 0;
 }
 
+
+
 // This function simply takes input from the user and checks that it does not go
 //     over the character limit
 bool takeInput (char (&inputBuffer)[g_InputLimit]) {
@@ -101,6 +109,10 @@ bool takeInput (char (&inputBuffer)[g_InputLimit]) {
 
     return true;
 }
+
+
+
+
 
 
 // This is a helper function for vectorizing the user input
