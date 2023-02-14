@@ -63,6 +63,7 @@ int main (void) {
     }
 
 
+    // TODO: hide functionality that is not available until login if user not logged in
 
     // Main loop for user
     char userInput[g_InputLimit];
@@ -102,6 +103,60 @@ bool takeInput (char (&inputBuffer)[g_InputLimit]) {
 }
 
 
+
+std::vector<std::string> extractWords (std::string inputString) {
+    // Convert remainder of string into vector of strings
+    std::vector<std::string> remainingInputVector;
+    int start = 0;
+    int end = inputString.find(" ", start);
+    while (end != std::string::npos && start != std::string::npos) {
+        std::string substr = inputString.substr(start, end - start);
+        remainingInputVector.push_back(substr);
+        start = inputString.find_first_not_of(" ", end);
+        end = inputString.find(" ", start);
+    }
+
+    if (start != std::string::npos) {
+        std::string substr = inputString.substr(start, std::string::npos);
+        if (substr.size() != 0) {
+            remainingInputVector.push_back(substr);
+        }
+    }
+
+    return remainingInputVector;
+}
+
+// This function takes a string and returns a vector of all substrings separated by
+//     by a space character
+std::vector<std::string> makeWordVector (std::string inputString) {
+    int firstQuoteIdx = inputString.find_first_of("'\"");
+    if (firstQuoteIdx == std::string::npos) {
+        return extractWords(inputString);
+    }
+
+
+    std::string substr1 = inputString.substr(0, firstQuoteIdx);
+
+    int lastQuoteIdx = inputString.find_last_of("'\"");
+    if (lastQuoteIdx == firstQuoteIdx) {
+        throw std::invalid_argument("Format Error: Closing quotation mark expected.");
+    }
+    std::string substr2 = inputString.substr(firstQuoteIdx+1, lastQuoteIdx-firstQuoteIdx-1);
+
+    int start_last = inputString.find_first_not_of(" ", lastQuoteIdx+1);
+    if (start_last != std::string::npos) {
+        throw std::invalid_argument("Format Error: Should not have characters after the final quotation mark.");
+    }
+
+    // Convert remainder of string into vector of strings
+    std::vector<std::string> remainingInputVector = extractWords(substr1);
+    remainingInputVector.push_back(substr2);
+
+    return remainingInputVector;
+}
+
+
+
 // This function will parse the user input and return the corresponding operation code
 void parseInput (std::string userInput) {
     std::string delimiter = " ";
@@ -119,20 +174,11 @@ void parseInput (std::string userInput) {
 
     opCode operation = operationMap.at(firstToken);
 
+    start = userInput.find_first_not_of(" ", end);
+    std::string remainingInput = userInput.substr(start);
+
     // Convert remainder of string into vector of strings
-    std::vector<std::string> remainingInputVector;
-    start = end + 1;
-    end = userInput.find(delimiter, start);
-    while (end != std::string::npos) {
-        std::string substr = userInput.substr(start, end - start);
-        remainingInputVector.push_back(substr);
-        start = end + 1;
-        end = userInput.find(delimiter, start);
-    }
-    std::string substr = userInput.substr(start, std::string::npos);
-    if (substr.size() != 0) {
-        remainingInputVector.push_back(substr);
-    }
+    std::vector<std::string> remainingInputVector = makeWordVector(remainingInput);
 
 
     Message* message;
@@ -162,7 +208,8 @@ void parseInput (std::string userInput) {
                     message->populate(remainingInputVector);
                     login(server_socket, msg);
                 } catch (std::runtime_error &e) {
-                    std::cout << e.what() << "LoginMessage" << std::endl;
+                    std::cout << "In case LOGIN:" << std::endl;
+                    std::cout << e.what() << std::endl;
                 } catch (std::invalid_argument &e) {
                     std::cout << e.what() << std::endl;
                 }
@@ -177,7 +224,8 @@ void parseInput (std::string userInput) {
                     message->populate(remainingInputVector);
                     logout(server_socket, msg);
                 } catch (std::runtime_error &e) {
-                    std::cout << e.what() << "LogoutMessage" << std::endl;
+                    std::cout << "In case LOGOUT:" << std::endl;
+                    std::cout << e.what() << std::endl;
                 } catch (std::invalid_argument &e) {
                     std::cout << e.what() << std::endl;
                 }
@@ -192,7 +240,8 @@ void parseInput (std::string userInput) {
                     message->populate(remainingInputVector);
                     listUsers(server_socket, msg);
                 } catch (std::runtime_error &e) {
-                    std::cout << e.what() << "ListUsersMessage" << std::endl;
+                    std::cout << "In case LIST_USERS:" << std::endl;
+                    std::cout << e.what() << std::endl;
                 } catch (std::invalid_argument &e) {
                     std::cout << e.what() << std::endl;
                 }
@@ -207,7 +256,8 @@ void parseInput (std::string userInput) {
                     message->populate(remainingInputVector);
                     sendMessage(server_socket, msg);
                 } catch (std::runtime_error &e) {
-                    std::cout << e.what() << "SendMessageMessage" << std::endl;
+                    std::cout << "In case SEND_MESSAGE:" << std::endl;
+                    std::cout << e.what() << std::endl;
                 } catch (std::invalid_argument &e) {
                     std::cout << e.what() << std::endl;
                 }
@@ -222,7 +272,8 @@ void parseInput (std::string userInput) {
                     message->populate(remainingInputVector);
                     queryNotifications(server_socket, msg);
                 } catch (std::runtime_error &e) {
-                    std::cout << e.what() << "QueryNotificationsMessage" << std::endl;
+                    std::cout << "In case QUERY_NOTIFICATIONS:" << std::endl;
+                    std::cout << e.what() << std::endl;
                 } catch (std::invalid_argument &e) {
                     std::cout << e.what() << std::endl;
                 }
@@ -237,7 +288,8 @@ void parseInput (std::string userInput) {
                     message->populate(remainingInputVector);
                     queryMessages(server_socket, msg);
                 } catch (std::runtime_error &e) {
-                    std::cout << e.what() << "QueryMessagesMessage" << std::endl;
+                    std::cout << "In case QUERY_MESSAGES:" << std::endl;
+                    std::cout << e.what() << std::endl;
                 } catch (std::invalid_argument &e) {
                     std::cout << e.what() << std::endl;
                 }
@@ -252,7 +304,8 @@ void parseInput (std::string userInput) {
                     message->populate(remainingInputVector);
                     deleteAccount(server_socket, msg);
                 } catch (std::runtime_error &e) {
-                    std::cout << e.what() << "DeleteAccountMessage" << std::endl;
+                    std::cout << "In case DELETE_ACCOUNT:" << std::endl;
+                    std::cout << e.what() << std::endl;
                 } catch (std::invalid_argument &e) {
                     std::cout << e.what() << std::endl;
                 }
