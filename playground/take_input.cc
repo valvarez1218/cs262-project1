@@ -32,7 +32,7 @@ std::vector<std::string> extractWords (std::string inputString) {
 
 // This function takes a string and returns a vector of all substrings separated by
 //     by a space character
-std::vector<std::string> makeWordVector (std::string inputString) {
+std::vector<std::string> makeStringVector (std::string inputString) {
     int firstQuoteIdx = inputString.find_first_of("'\"");
     if (firstQuoteIdx == std::string::npos) {
         return extractWords(inputString);
@@ -81,7 +81,7 @@ int main (void) {
     while (true) {
         takeInput(msg);
         try {
-            std::vector<std::string> strings = makeWordVector(msg);
+            std::vector<std::string> strings = makeStringVector(msg);
             for (std::string s : strings) {
                 std::cout << s << std::endl;
             }

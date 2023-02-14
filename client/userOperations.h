@@ -21,7 +21,8 @@ void listUsers(int socket_fd, ListUsersMessage list_users_message) {
 
 
 void sendMessage(int socket_fd, SendMessageMessage send_message_message) {
-    throw std::runtime_error("sendMessage() not implemented");
+    // throw std::runtime_error("sendMessage() not implemented");
+    send(socket_fd, &send_message_message, sizeof(SendMessageMessage), 0);
 }
 
 

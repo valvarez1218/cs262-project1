@@ -103,7 +103,7 @@ bool takeInput (char (&inputBuffer)[g_InputLimit]) {
 }
 
 
-
+// This is a helper function for vectorizing the user input
 std::vector<std::string> extractWords (std::string inputString) {
     // Convert remainder of string into vector of strings
     std::vector<std::string> remainingInputVector;
@@ -126,9 +126,8 @@ std::vector<std::string> extractWords (std::string inputString) {
     return remainingInputVector;
 }
 
-// This function takes a string and returns a vector of all substrings separated by
-//     by a space character
-std::vector<std::string> makeWordVector (std::string inputString) {
+// This function takes a string and returns input as vector of strings as the message classes would expect it
+std::vector<std::string> makeStringVector (std::string inputString) {
     int firstQuoteIdx = inputString.find_first_of("'\"");
     if (firstQuoteIdx == std::string::npos) {
         return extractWords(inputString);
@@ -178,7 +177,13 @@ void parseInput (std::string userInput) {
     std::string remainingInput = userInput.substr(start);
 
     // Convert remainder of string into vector of strings
-    std::vector<std::string> remainingInputVector = makeWordVector(remainingInput);
+    std::vector<std::string> remainingInputVector;
+    try {
+        remainingInputVector  = makeStringVector(remainingInput);
+    } catch(std::invalid_argument &e) {
+        std::cout << e.what() << std::endl;
+        return;
+    }
 
 
     Message* message;
