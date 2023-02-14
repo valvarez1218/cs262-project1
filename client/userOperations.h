@@ -9,11 +9,17 @@ void printLoggedInError(std::string operationAttempted) {
 
 void createAccount(int socket_fd, CreateAccountMessage create_account_message) {
     throw std::runtime_error("createAccount() not implemented");
+
+
+    USER_LOGGED_IN = true;
 }
 
 
 void login(int socket_fd, LoginMessage login_message) {
     throw std::runtime_error("login() not implemented");
+
+
+    USER_LOGGED_IN = true;
 }
 
 
