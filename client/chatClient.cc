@@ -106,19 +106,22 @@ bool takeInput (char (&inputBuffer)[g_InputLimit]) {
 // This is a helper function for vectorizing the user input
 std::vector<std::string> extractWords (std::string inputString) {
     // Convert remainder of string into vector of strings
+    std::string delimiters = " \t";
     std::vector<std::string> remainingInputVector;
-    int start = 0;
-    int end = inputString.find(" ", start);
+    int start = inputString.find_first_not_of(delimiters);
+    int end = inputString.find_first_of(delimiters, start);
     while (end != std::string::npos && start != std::string::npos) {
         std::string substr = inputString.substr(start, end - start);
+        std::cout << substr << std::endl;
         remainingInputVector.push_back(substr);
-        start = inputString.find_first_not_of(" ", end);
-        end = inputString.find(" ", start);
+        start = inputString.find_first_not_of(delimiters, end);
+        end = inputString.find_first_of(delimiters, start);
     }
 
     if (start != std::string::npos) {
         std::string substr = inputString.substr(start, std::string::npos);
         if (substr.size() != 0) {
+            std::cout << substr << std::endl;
             remainingInputVector.push_back(substr);
         }
     }
@@ -158,34 +161,28 @@ std::vector<std::string> makeStringVector (std::string inputString) {
 
 // This function will parse the user input and return the corresponding operation code
 void parseInput (std::string userInput) {
-    std::string delimiter = " ";
-    int start = 0;
-    int end = userInput.find(delimiter);
 
-    std::string firstToken = userInput.substr(start, end);
+    // Convert input string into vector of strings
+    std::vector<std::string> inputVector;
+    try {
+        inputVector = makeStringVector(userInput);
+    } catch(std::invalid_argument &e) {
+        std::cout << e.what() << std::endl;
+        return;
+    }
 
+    // check that first token is operation recognized by program
+    std::string firstToken = inputVector[0];
     if (operationMap.find(firstToken) == operationMap.end()) {
         std::string errorMessage = "'";
         errorMessage += firstToken;
         errorMessage += "' is not a defined operation.";
         throw std::invalid_argument(errorMessage);
     }
-
     opCode operation = operationMap.at(firstToken);
 
-    start = userInput.find_first_not_of(" ", end);
-    std::string remainingInput = userInput.substr(start);
-
-    // Convert remainder of string into vector of strings
-    std::vector<std::string> remainingInputVector;
-    try {
-        remainingInputVector  = makeStringVector(remainingInput);
-    } catch(std::invalid_argument &e) {
-        std::cout << e.what() << std::endl;
-        return;
-    }
-
-
+    // remove operation from beginning of input vector
+    std::vector<std::string> remainingInputVector(inputVector.begin()+1, inputVector.end());
     Message* message;
     switch (operation)
     {

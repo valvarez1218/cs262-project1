@@ -46,10 +46,22 @@ const size_t g_ClientUsernameLimit = g_UsernameLimit - 1;
 const size_t g_ClientPasswordLimit = g_PasswordLimit - 1;
 const size_t g_ClientMessageLimit = g_MessageLimit - 1;
 
+const std::string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
 
 std::string characterError(std::string field, std::string fieldValue, size_t limit) {
     return "The " + field + " field takes input of at most " + std::to_string(limit) +
             " characters.\n '" + fieldValue + "' is too long.";
+}
+
+
+// check that character follows allowed alphabet
+bool validString(std::string inputString) {
+    int found = inputString.find_first_not_of(alphabet);
+    if (found != std::string::npos) {
+        return false;
+    }
+    return true;
 }
 
 struct Message {

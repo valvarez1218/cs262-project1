@@ -11,13 +11,16 @@ const size_t g_InputLimit = 100;
 std::vector<std::string> extractWords (std::string inputString) {
     // Convert remainder of string into vector of strings
     std::vector<std::string> remainingInputVector;
-    int start = 0;
-    int end = inputString.find(" ", start);
+    std::string delimiters = " \t";
+    int start = inputString.find_first_not_of(delimiters);
+    printf("%i\n", start);
+    int end = inputString.find_first_of(delimiters, start);
+    printf("%i\n", end);
     while (end != std::string::npos && start != std::string::npos) {
         std::string substr = inputString.substr(start, end - start);
         remainingInputVector.push_back(substr);
-        start = inputString.find_first_not_of(" ", end);
-        end = inputString.find(" ", start);
+        start = inputString.find_first_not_of(delimiters, end);
+        end = inputString.find_first_of(delimiters, start);
     }
 
     if (start != std::string::npos) {
