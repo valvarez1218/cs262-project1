@@ -112,7 +112,6 @@ std::vector<std::string> extractWords (std::string inputString) {
     int end = inputString.find_first_of(delimiters, start);
     while (end != std::string::npos && start != std::string::npos) {
         std::string substr = inputString.substr(start, end - start);
-        std::cout << substr << std::endl;
         remainingInputVector.push_back(substr);
         start = inputString.find_first_not_of(delimiters, end);
         end = inputString.find_first_of(delimiters, start);
@@ -121,7 +120,6 @@ std::vector<std::string> extractWords (std::string inputString) {
     if (start != std::string::npos) {
         std::string substr = inputString.substr(start, std::string::npos);
         if (substr.size() != 0) {
-            std::cout << substr << std::endl;
             remainingInputVector.push_back(substr);
         }
     }
