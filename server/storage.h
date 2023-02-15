@@ -49,6 +49,11 @@ struct ConversationsDictionary {
         notificationsMutex.unlock();
     }
 
+    // TODO: Package notifications to be sent out
+    void getNotifications(char recipientUsername) {
+    
+    }
+
 
 };
 
@@ -104,6 +109,7 @@ struct StoredMessages {
     std::mutex messageMutex;
 
     // Adding a new message onto the messageList
+    // TODO: have this return thread of the recipient?
     void addMessage(char senderUsername[g_UsernameLimit], char recipientUsername[g_UsernameLimit], char message[g_MessageLimit]) {
         messageMutex.lock();
 
@@ -174,4 +180,7 @@ std::map<UserPair, StoredMessages> messagesDictionary;
 std::map<char[g_UsernameLimit], std::thread::id> threadDictionary;
 
 // TODO: Users Trie
-// TODO: mutex
+// Initialize Trie
+// Add user
+// Find all users associated with a substring
+// Verify username/password pair
