@@ -1,9 +1,9 @@
+#include "../messageTypes.h"
+
 #include <netinet/in.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include <netdb.h>
+
 #define PORT 8080
 
 int main (int argc, char const* argv[]) {
@@ -13,6 +13,7 @@ int main (int argc, char const* argv[]) {
     int addrlen = sizeof(address);
     char buffer[1024] = { 0 };
     char* hello = "Hello from server";
+
  
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -27,9 +28,22 @@ int main (int argc, char const* argv[]) {
         perror("setsockopt");
         exit(EXIT_FAILURE);
     }
+    
+
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
+
+    char host[256];
+    char *IP;
+    hostent *host_entry;
+    int hostname;
+    hostname = gethostname(host, sizeof(host)); //find the host name
+    host_entry = gethostbyname(host); //find host information
+    IP = inet_ntoa(*((struct in_addr*) host_entry->h_addr_list[0])); //Convert into IP string
+    // printf("Current Host Name: %s\n", host);
+    printf("Host IP: %s\n", IP);
+
  
     // Forcefully attaching socket to the port 8080
     if (bind(server_fd, (sockaddr*)&address,
@@ -38,6 +52,8 @@ int main (int argc, char const* argv[]) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
+    
+
     if (listen(server_fd, 3) < 0) {
         perror("listen");
         exit(EXIT_FAILURE);
@@ -49,8 +65,12 @@ int main (int argc, char const* argv[]) {
         perror("accept");
         exit(EXIT_FAILURE);
     }
-    valread = read(new_socket, buffer, 1024);
-    printf("%s\n", buffer);
+
+    while (true) {
+        SendMessageMessage msg;
+        valread = read(new_socket, &msg, sizeof(SendMessageMessage));
+        printf("%s\n", msg.messageContent);
+    }
     send(new_socket, hello, strlen(hello), 0);
     printf("Hello message sent\n");
  
