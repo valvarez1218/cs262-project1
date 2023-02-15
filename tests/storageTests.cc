@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include "../server/chatServer.cc"
 #include "../server/storage.h"
 #include "./testInfra.h"
 

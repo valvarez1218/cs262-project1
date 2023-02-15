@@ -34,6 +34,8 @@ int main (int argc, char const* argv[]) {
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
 
+    // For getting host IP address we followed tutorial found here: 
+    //      https://www.tutorialspoint.com/how-to-get-the-ip-address-of-local-computer-using-c-cplusplus
     char host[256];
     char *IP;
     hostent *host_entry;

@@ -1,19 +1,12 @@
-#include <string>
-
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <iostream>
-#include <vector>
 #include "../messageTypes.h"
+
 #include <map>
 #include <tuple>
 #include <thread>
 #include <mutex>
 #include <algorithm>
 #include <atomic>
+#include <unordered_set>
 
 
 // TODO: ask nictor why this doesnt work
@@ -30,6 +23,11 @@
 //     }
 // };
 
+struct CurrentConversation {
+    char username[g_UsernameLimit];
+    int requestsReceived;
+};
+
 // Key: user with active conversations, Value: map from users to number of notifications they have
 struct ConversationsDictionary {
     std::map<std::string, std::map<std::string, int>> conversations;
@@ -45,7 +43,7 @@ struct ConversationsDictionary {
     // decrement seen messages
     void notificationSeen(char senderUsername[g_UsernameLimit], char recipientUsername[g_UsernameLimit]) {
         notificationsMutex.lock();
-        conversations[recipientUsername][senderUsername]--;
+       conversations[recipientUsername][senderUsername]--;
         notificationsMutex.unlock();
     }
 
@@ -177,8 +175,41 @@ struct StoredMessages {
 };
 
 std::map<UserPair, StoredMessages> messagesDictionary;
-std::map<char[g_UsernameLimit], std::thread::id> threadDictionary;
+std::map<char[g_UsernameLimit], int> socketDictionary;
 
+
+struct CharNode {
+    char character;
+    std::unordered_map<char, CharNode*> children;
+    bool endsEntry;
+
+    CharNode(char c, bool b) {
+        character = c;
+        endsEntry = b;
+    }
+};
+
+
+struct UserTrie {
+    std::unordered_map<char, CharNode*> roots;
+
+    void returnUsersWithPrefix(std::string usernamePrefix) {
+        if (roots.find(usernamePrefix[0]) == roots.end()) {
+            // TODO: Throw error that says it wasnt found?
+            return;
+        }
+
+        CharNode* root = roots[usernamePrefix[0]];
+        CharNode* currNode = root;
+
+        std::vector<std::string> usersFound;
+        // perform BFS over user Trie
+        for (char c : usernamePrefix) {
+
+        }
+
+    }
+}
 // TODO: Users Trie
 // Initialize Trie
 // Add user
