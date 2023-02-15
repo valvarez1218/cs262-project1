@@ -20,7 +20,3 @@
 #define QUERY_NOTIFICATIONS_REPLY 12
 #define QUERY_MESSAGES_REPLY 13
 #define DELETE_ACCOUNT_REPLY 14
-
-int main (void) {
-
-}

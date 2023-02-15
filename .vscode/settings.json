@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "atomic": "cpp",
+        "__mutex_base": "cpp",
+        "mutex": "cpp",
+        "memory": "cpp"
+    }
+}
