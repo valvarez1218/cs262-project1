@@ -297,6 +297,15 @@ struct UserTrie {
             }
         }
 
+        bool userExists(std::string user) {
+            std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
+            if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size() || !nodeIdxPair.first->isTerminal) {
+                return false;
+            }
+
+            return nodeIdxPair.first->isTerminal;
+        }
+
         bool verifyUser(std::string username, std::string password) {
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
             if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size()-1 || !nodeIdxPair.first->isTerminal) {
@@ -308,7 +317,16 @@ struct UserTrie {
             return password == userPasswordMap[nodeIdxPair.first];
         }
 
-        // TODO: verify if user is deleted
+        void deleteUser(std::string username) {
+            std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
+            if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size() || !nodeIdxPair.first->isTerminal) {
+                std::string errorMsg = "User '" + username + "' not found.";
+                throw std::runtime_error(errorMsg);
+            }
+
+            nodeIdxPair.first->isTerminal = false;
+            userPasswordMap.erase(nodeIdxPair.first);
+        }
 };
 // TODO: Users Trie
 UserTrie userTrie;
