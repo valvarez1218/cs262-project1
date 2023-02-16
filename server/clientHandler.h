@@ -49,10 +49,14 @@ void handleClient(int client_fd) {
                 }
             }
             case QUERY_NOTIFICATIONS:
+            {
                 // make getNoti
                 std::vector<std::pair<char [g_UsernameLimit], char> > notifications = conversationsDictionary.getNotifications(threadUser);
 
+                QueryNotificationReply queryMessagesReply(notifications.size(), notifications);
 
+                send(client_fd, &queryMessagesReply, sizeof(queryMessagesReply), 0);
+            }
             case QUERY_MESSAGES:
             {
                 QueryMessagesMessage queryMessagesMessage;
@@ -61,15 +65,19 @@ void handleClient(int client_fd) {
                 UserPair userPair(queryMessagesMessage.username, threadUser);
                 int lastMessageDeliveredIndex = -1;
                 if (currentConversation.username == queryMessagesMessage.username) {
-                    lastMessageDeliveredIndex = currentConversation.lastMessageDelivedIndex;
-                    currentConversation.requestsReceived ++;
+                    lastMessageDeliveredIndex = currentConversation.messagesSentStartIndex;
+                } else {
+                    strcpy(currentConversation.username, queryMessagesMessage.username);
                 }
+
                 GetStoredMessagesReturnValue returnVal = messagesDictionary[userPair].getStoredMessages(threadUser,lastMessageDeliveredIndex);
 
-                currentConversation.lastMessageDeliveredIndex = returnVal.firstMessageIndex;
+                currentConversation.messagesSentStartIndex = returnVal.firstMessageIndex;
+                currentConversation.messagesSentEndIndex = returnVal.lastMessageIndex;
 
-                // send 
-                // messagesDictionary
+                send(client_fd, &returnVal.messageList, sizeof(returnVal.messageList), 0);
+
+                
             }
             case DELETE_ACCOUNT:
             // remove account username from socket dictionary

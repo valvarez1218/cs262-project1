@@ -15,17 +15,24 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
+# add_executable(
+#   storageTests
+#   ./tests/storageTests.cc
+# ) 
+
 add_executable(
-  storageTests
-  ./tests/storageTests.cc
-) 
+  clientTests
+  ./tests/clientTests.cc
+)
 
 target_link_libraries(
-  storageTests
+  # storageTests
+  clientTests
   gtest
   gtest_main
 )
 
 include(GoogleTest)
 # gtest_discover_tests(storageTests)
-gtest_add_tests(TARGET storageTests)
+# gtest_add_tests(TARGET storageTests)
+gtest_add_tests(TARGET clientTests)

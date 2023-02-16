@@ -25,7 +25,8 @@
 
 struct CurrentConversation {
     char username[g_UsernameLimit];
-    int requestsReceived;
+    int messagesSentStartIndex;
+    int messagesSentEndIndex;
 };
 
 // Key: user with active conversations, Value: map from users to number of notifications they have
@@ -48,8 +49,20 @@ struct ConversationsDictionary {
     }
 
     // TODO: Package notifications to be sent out
-    void getNotifications(char recipientUsername) {
-    
+    std::vector<std::pair<char [g_UsernameLimit], char>> getNotifications(char recipientUsername [g_UsernameLimit]) {
+        std::vector<std::pair<char [g_UsernameLimit], char>> allNotifications;
+
+        for (auto const& pair : conversations[recipientUsername]) {
+            if (pair.second > 0) {
+                std::pair<char [g_UsernameLimit], char> notificationItem;
+                strcpy(notificationItem.first, pair.first.c_str());
+                notificationItem.second = pair.second;
+
+                allNotifications.push_back(notificationItem);
+            }
+        }
+
+        return allNotifications;
     }
 
 
@@ -96,7 +109,7 @@ struct StoredMessage {
 
 // Wrapping for the return value of getStoredMessages in the StoredMessages struct
 struct GetStoredMessagesReturnValue {
-    std::vector<StoredMessage> messageList;
+    std::vector<bool, char [g_MessageLimit]> messageList;
     int lastMessageIndex;
     int firstMessageIndex;
 };
@@ -162,7 +175,16 @@ struct StoredMessages {
 
         // Grab relevant messages
         for (int i = firstMessageIndex; i < lastMessageIndex+1; i++) {
-            returnValue.messageList.push_back(messageList[i]);
+            std::pair<bool, char [g_MessageLimit]> newItem;
+            
+            if (readerUsername == messageList[i].senderUsername) {
+                newItem.first = true;
+            } else {
+                newItem.first = false;
+            }
+            
+            strcpy(newItem.second, messageList[i].messageContent.c_str());
+            returnValue.messageList.push_back(newItem);
         }
 
         messageMutex.unlock();

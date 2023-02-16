@@ -213,7 +213,7 @@ struct ListUsersMessage : Message {
     }
 
     bool parse (int socket_fd) {
-        ssize_t valread = read(socket_fd, &prefix[30], g_UsernameLimit);
+        ssize_t valread = read(socket_fd, &prefix[0], g_UsernameLimit);
         return valread == -1 ? false : true;
     }
 
@@ -460,16 +460,28 @@ struct SendMessageReply : Reply {
 // TODO
 struct QueryNotificationReply : Reply {
     int numberOfUsers;
-    std::vector<std::pair<char [g_UsernameLimit], int> > notifications;
+    std::vector<std::pair<char [g_UsernameLimit], char>> notifications;
 
-    QueryNotificationReply() {
+    QueryNotificationReply(int users, std::vector<std::pair<char [g_UsernameLimit], char>> notificationsList) {
+        numberOfUsers = users;
+
+        for (int i=0; i < notificationsList.size(); i++) {
+            std::pair<char [g_UsernameLimit], char> newVectorElement;
+            strcpy(newVectorElement.first, notificationsList[0].first);
+            newVectorElement.second = notificationsList[0].second;
+
+            notifications.push_back(newVectorElement);
+        }
         operation = QUERY_NOTIFICATIONS_REPLY;
     }
 };
 
 
+
 // TODO
 struct QueryMessagesReply : Reply {
+    int numberOfMessages;
+    std::vector<std::pair<char [g_UsernameLimit], char [g_MessageLimit]>> notifications;
 
     QueryMessagesReply() {
         operation = QUERY_MESSAGES_REPLY;
