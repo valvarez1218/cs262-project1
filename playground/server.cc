@@ -72,6 +72,7 @@ int main (int argc, char const* argv[]) {
         SendMessageMessage msg;
         valread = read(new_socket, &msg, sizeof(SendMessageMessage));
         printf("%s\n", msg.messageContent);
+        printf("valread: %d\n", valread);
     }
     send(new_socket, hello, strlen(hello), 0);
     printf("Hello message sent\n");

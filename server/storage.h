@@ -202,7 +202,7 @@ struct UserTrie {
         CharNode* root = roots[usernamePrefix[0]];
         CharNode* currNode = root;
 
-        std::vector<std::string> usersFound;
+        std::vector<std::string> user
         // perform BFS over user Trie
         for (char c : usernamePrefix) {
 

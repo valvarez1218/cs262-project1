@@ -399,8 +399,10 @@ struct NewMessageMessage : Message {
     char senderUsername[g_UsernameLimit];
     char messageContent[g_MessageLimit];
 
-    NewMessageMessage() {
+    NewMessageMessage(char username[g_UsernameLimit], char message[g_MessageLimit]) {
         operation = NEW_MESSAGE;
+        strcpy(senderUsername, username);
+        strcpy(messageContent, message);
     }
 
     bool parse (int socket_fd) {
@@ -451,9 +453,11 @@ struct SendMessageReply : Reply {
 
 
 // TODO
-struct QueryNotificationRepy : Reply {
+struct QueryNotificationReply : Reply {
+    int numberOfUsers;
+    std::vector<std::pair<char [g_UsernameLimit], int> > notifications;
 
-    QueryNotificationRepy() {
+    QueryNotificationReply() {
         operation = QUERY_NOTIFICATIONS_REPLY;
     }
 };
@@ -486,7 +490,7 @@ struct MessagesSeenReply : Reply {
 };
 
 
-// TODO
+// TODO PROBABLY DON"T NEED??
 struct NewMessageReply : Reply {
 
     NewMessageReply() {
