@@ -6,7 +6,7 @@
 #include <mutex>
 #include <algorithm>
 #include <atomic>
-#include <unordered_set>
+#include <unordered_map>
 
 
 // TODO: ask nictor why this doesnt work
@@ -136,7 +136,7 @@ struct StoredMessages {
     // TODO: lastMessageDeliveredIndex should be updated upon CONSECUTIVE query messages calls and reset when the user queries other messages
     // It should also not run if the lastMessageDelivered index is zero, 
     GetStoredMessagesReturnValue getStoredMessages(char readerUsername[g_UsernameLimit], int lastMessageDeliveredIndex) {
-        assert(lastMessageDeliveredIndex!=0);
+        // assert(lastMessageDeliveredIndex!=0);
         messageMutex.lock();
 
         // Keep track of the last unread message for that user
@@ -178,38 +178,119 @@ std::map<UserPair, StoredMessages> messagesDictionary;
 std::map<char[g_UsernameLimit], int> socketDictionary;
 
 
+
 struct CharNode {
     char character;
     std::unordered_map<char, CharNode*> children;
-    bool endsEntry;
+    bool isTerminal;
 
     CharNode(char c, bool b) {
         character = c;
-        endsEntry = b;
+        isTerminal = b;
     }
 };
 
+std::unordered_map<CharNode*, std::string> userPasswordMap;
 
 struct UserTrie {
-    std::unordered_map<char, CharNode*> roots;
+    private:
+        std::unordered_map<char, CharNode*> roots;
 
-    void returnUsersWithPrefix(std::string usernamePrefix) {
-        if (roots.find(usernamePrefix[0]) == roots.end()) {
-            // TODO: Throw error that says it wasnt found?
-            return;
+    public:
+        // add new username to trie; return whether username was added successfully or not
+        //      If username could not be added throws invalid_argument exception
+        void addUsername(std::string username, std::string password) {
+            if (!validString(username)) {
+                std::string errorMsg = "Username '" + username + "' is invalid. Must be alphanumeric and at least 1 character.";
+                throw std::invalid_argument(errorMsg);
+            }
+
+            std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
+            CharNode* currNode = nodeIdxPair.first;
+
+            if (currNode == nullptr) {
+                currNode = new CharNode(username[0], false);
+                roots[username[0]] = currNode;
+                nodeIdxPair.second = 0;
+            }
+            else if (currNode->isTerminal) {
+                std::string errorMsg = "Username '" + username + "' has already been taken.";
+                throw std::invalid_argument(errorMsg);
+            }
+
+            for (int idx = nodeIdxPair.second+1; idx < username.size(); idx++) {
+                char c = username[idx];
+                CharNode* newChild = new CharNode(c, false);
+                currNode->children[c] = newChild;
+                currNode = newChild;
+            }
+
+            currNode->isTerminal = true;
+            userPasswordMap[currNode] = password;
         }
 
-        CharNode* root = roots[usernamePrefix[0]];
-        CharNode* currNode = root;
+        // Returns a vector of users with given prefix, if none found returns a runtime exception
+        std::vector<std::string> returnUsersWithPrefix(std::string usernamePrefix) {
+            std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(usernamePrefix);
+            CharNode* deepestNode = nodeIdxPair.first;
+            int index = nodeIdxPair.second;
 
-        std::vector<std::string> usersFound;
-        // perform BFS over user Trie
-        for (char c : usernamePrefix) {
+            if (index != usernamePrefix.size()-1) {
+                std::string errorMsg = "No usernames found for prefix '" + usernamePrefix + "'";
+                throw std::runtime_error(errorMsg);
+            }
 
+            // Perform DFS starting at deepest node
+            std::vector<std::string> usersFound;
+            performDFS(usernamePrefix, deepestNode, usersFound);
+            return usersFound;
         }
 
-    }
-}
+        std::pair<CharNode*, int> findLongestMatchingPrefix(std::string username) {
+            if (roots.find(username[0]) == roots.end()) {
+                return std::make_pair(nullptr, -1);
+            }
+
+            CharNode* deepestNode = roots[username[0]];
+
+            // Find deepest matching prefix
+            int idx = 1;
+            while (idx < username.size()) {
+                char c = username[idx];
+                if ((deepestNode->children).find(c) == (deepestNode->children).end()) {
+                    break;
+                }
+                deepestNode = deepestNode->children[c];
+                idx++;
+            }
+
+            return std::make_pair(deepestNode, idx-1);
+        }
+
+
+        // Given a substring and current node, append to vector if node ends a username
+        void performDFS(std::string substring, CharNode* currNode, std::vector<std::string> &usersFound) {
+            if (currNode->isTerminal) {
+                usersFound.push_back(substring);
+            }
+            for (auto it = currNode->children.begin(); it != currNode->children.end(); ++it) {
+                std::string newSubstr = substring + (*it).first;
+                performDFS(newSubstr, (*it).second, usersFound);
+            }
+        }
+
+
+        bool verifyUser(std::string username, std::string password) {
+            std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
+            if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size()-1 || !nodeIdxPair.first->isTerminal) {
+                std::cout << "User '" << username << "' not found." << std::endl;
+                return false;
+            }
+
+            // return strcmp(password.c_str(), (userPasswordMap[nodeIdxPair.first]).c_str()) == 0;
+            return password == userPasswordMap[nodeIdxPair.first];
+        }
+};
 // TODO: Users Trie
 // Initialize Trie
 // Add user

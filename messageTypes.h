@@ -57,6 +57,11 @@ std::string characterError(std::string field, std::string fieldValue, size_t lim
 
 // check that character follows allowed alphabet
 bool validString(std::string inputString) {
+    // No emptry strings
+    if (inputString.size() < 1) {
+        return false;
+    }
+    // Check that all characters are from alphabet
     int found = inputString.find_first_not_of(alphabet);
     if (found != std::string::npos) {
         return false;
