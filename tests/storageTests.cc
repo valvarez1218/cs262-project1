@@ -2,6 +2,16 @@
 #include "../server/storage.h"
 #include "./testInfra.h"
 
+
+std::vector<std::string> usernameQuery (UserTrie trie, std::string query) {
+  try {
+    std::vector<std::string> users = trie.returnUsersWithPrefix(query);
+    return users;
+  } catch (std::runtime_error &e) {
+    return std::vector<std::string> {};
+  }
+}
+
 void dummyIncrement(int Z, ConversationsDictionary* testConversationsDictionary, char sender[g_UsernameLimit], char recipient[g_UsernameLimit]) {
   for (int i = 0; i < Z; i++) {
       testConversationsDictionary->newNotification(sender, recipient);
@@ -164,6 +174,77 @@ TEST(MessagesDictionaryDict, GettingMessages) {
 }
 
 
+TEST(UsernameTrieStorage, AddingUsernames) {
+  UserTrie usernameTrie;
+  std::string user1 = "Victor";
+  std::string user2 = "Carolyn";
+  std::string user3 = "Carlos";
+  std::string user4 = "Vicky";
+
+  usernameTrie.addUsername(user1, "password");
+  usernameTrie.addUsername(user2, "password");
+  usernameTrie.addUsername(user3, "password");
+  usernameTrie.addUsername(user4, "password");
+
+  std::vector<std::string> query1 = usernameTrie.returnUsersWithPrefix("Victor");
+  std::vector<std::string> query1_expects {"Victor"};
+
+  std::vector<std::string> query2 = usernameTrie.returnUsersWithPrefix("Carolyn");
+  std::vector<std::string> query2_expects {"Carolyn"};
+
+  std::vector<std::string> query3 = usernameTrie.returnUsersWithPrefix("Carlos");
+  std::vector<std::string> query3_expects {"Carlos"};
+
+  std::vector<std::string> query4 = usernameTrie.returnUsersWithPrefix("Vicky");
+  std::vector<std::string> query4_expects {"Vicky"};
+
+  EXPECT_EQ(query1, query1_expects);
+}
+
+
+TEST(UsernameTrieStorage, QueryingUsernames) {
+  UserTrie usernameTrie;
+  std::string user1 = "Victor";
+  std::string user2 = "Carolyn";
+  std::string user3 = "Carlos";
+  std::string user4 = "Vicky";
+
+  usernameTrie.addUsername(user1, "password");
+  usernameTrie.addUsername(user2, "password");
+  usernameTrie.addUsername(user3, "password");
+  usernameTrie.addUsername(user4, "password");
+
+  EXPECT_EQ(usernameQuery(usernameTrie, "victor"), std::vector<std::string> {});
+  EXPECT_EQ(usernameQuery(usernameTrie, "Caroline"), std::vector<std::string> {});
+  EXPECT_EQ(usernameQuery(usernameTrie, "Diego"), std::vector<std::string> {});
+  EXPECT_EQ(usernameQuery(usernameTrie, "a"), std::vector<std::string> {});
+  EXPECT_EQ(usernameQuery(usernameTrie, "b"), std::vector<std::string> {});
+  EXPECT_EQ(usernameQuery(usernameTrie, "A"), std::vector<std::string> {});
+  EXPECT_EQ(usernameQuery(usernameTrie, "B"), std::vector<std::string> {});
+  EXPECT_EQ(usernameQuery(usernameTrie, "V"), (std::vector<std::string> {"Vicky", "Victor"}));
+  EXPECT_EQ(usernameQuery(usernameTrie, "C"), (std::vector<std::string> {"Carlos", "Carolyn"}));
+}
+
+TEST(UsernameTrieStorage, PasswordStorage) {
+  UserTrie usernameTrie;
+  std::string user1 = "Victor";
+  std::string user2 = "Carolyn";
+  std::string user3 = "Carlos";
+  std::string user4 = "Vicky";
+
+  usernameTrie.addUsername(user1, "password1");
+  usernameTrie.addUsername(user2, "password2");
+  usernameTrie.addUsername(user3, "password3");
+  usernameTrie.addUsername(user4, "password4");
+
+  EXPECT_EQ(usernameTrie.verifyUser("Victor", "password1"), true);
+  EXPECT_EQ(usernameTrie.verifyUser("Victor", "notpassword"), false);
+  EXPECT_EQ(usernameTrie.verifyUser("Carlos", "password3"), true);
+  EXPECT_EQ(usernameTrie.verifyUser("Carlos", "somethingelse"), false);
+  EXPECT_EQ(usernameTrie.verifyUser("NoUser", "somethingelse"), false);
+  EXPECT_EQ(usernameTrie.verifyUser("Vic", "password1"), false);
+  EXPECT_EQ(usernameTrie.verifyUser("Vic", "password4"), false);
+}
 
 int main(int argc, char* argv[]) {
   ::testing::InitGoogleTest(&argc,argv);
