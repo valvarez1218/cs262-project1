@@ -109,9 +109,9 @@ struct StoredMessage {
 
 // Wrapping for the return value of getStoredMessages in the StoredMessages struct
 struct GetStoredMessagesReturnValue {
-    std::vector<bool, char [g_MessageLimit]> messageList;
     int lastMessageIndex;
     int firstMessageIndex;
+    std::vector<ReturnMessage> messageList;
 };
 
 // A list of stored messages
@@ -175,15 +175,11 @@ struct StoredMessages {
 
         // Grab relevant messages
         for (int i = firstMessageIndex; i < lastMessageIndex+1; i++) {
-            std::pair<bool, char [g_MessageLimit]> newItem;
+            ReturnMessage newItem;
             
-            if (readerUsername == messageList[i].senderUsername) {
-                newItem.first = true;
-            } else {
-                newItem.first = false;
-            }
-            
-            strcpy(newItem.second, messageList[i].messageContent.c_str());
+            strcpy(newItem.senderUsername, messageList[i].senderUsername.c_str());
+            strcpy(newItem.messageContent, messageList[i].messageContent.c_str());
+
             returnValue.messageList.push_back(newItem);
         }
 
@@ -301,7 +297,6 @@ struct UserTrie {
             }
         }
 
-
         bool verifyUser(std::string username, std::string password) {
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
             if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size()-1 || !nodeIdxPair.first->isTerminal) {
@@ -312,8 +307,11 @@ struct UserTrie {
             // return strcmp(password.c_str(), (userPasswordMap[nodeIdxPair.first]).c_str()) == 0;
             return password == userPasswordMap[nodeIdxPair.first];
         }
+
+        // TODO: verify if user is deleted
 };
 // TODO: Users Trie
+UserTrie userTrie;
 // Initialize Trie
 // Add user
 // Find all users associated with a substring

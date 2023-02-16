@@ -376,25 +376,26 @@ struct DeleteAccountMessage : Message {
 
 
 struct MessagesSeenMessage : Message {
-    char otherUsername[g_UsernameLimit];
     u_int messagesSeen;
     u_int startingIndex;
+    char otherUsername[g_UsernameLimit];
 
     MessagesSeenMessage() {
         operation = MESSAGES_SEEN;
     }
 
     bool parse (int socket_fd) {
-        ssize_t valread = read(socket_fd, &otherUsername[0], g_UsernameLimit);
-        if (valread == -1) {
-            return false;
-        }
-        valread = read(socket_fd, &messagesSeen, sizeof(u_int));
+        ssize_t valread = read(socket_fd, &messagesSeen, sizeof(u_int));
         if (valread == -1) {
             return false;
         }
         valread = read(socket_fd, &startingIndex, sizeof(u_int));
         return valread == -1 ? false : true;
+
+        valread = read(socket_fd, &otherUsername[0], g_UsernameLimit);
+        if (valread == -1) {
+            return false;
+        }
     }
 };
 
@@ -423,27 +424,41 @@ struct NewMessageMessage : Message {
 
 // TODO
 struct CreateAccountReply : Reply {
+    int queryResult;
 
-    CreateAccountReply() {
+    CreateAccountReply(int c_queryResult) {
         operation = CREATE_ACCOUNT_REPLY;
+        queryResult = c_queryResult;
     }
 };
 
 
 // TODO
 struct LoginReply : Reply {
+    int queryStatus;
 
-    LoginReply() {
+    LoginReply(int c_queryStatus) {
         operation = LOGIN_REPLY;
+        queryStatus = c_queryStatus;
     }
 };
 
 
 // TODO
 struct ListUsersReply : Reply {
+    int numberOfUsers;
+    std::vector<char [g_UsernameLimit]> usernames;
 
-    ListUsersReply() {
+    ListUsersReply(int c_numberOfUsers, std::vector<std::string> c_usernames) {
         operation = LIST_USERS_REPLY;
+        numberOfUsers = c_numberOfUsers;
+
+        for (int i = 0; i < c_usernames.size(); i++) {
+            char newUsername[g_UsernameLimit];
+            strcpy(newUsername, c_usernames[i].c_str());
+            usernames.push_back(newUsername);
+        }
+
     }
 };
 
@@ -476,15 +491,23 @@ struct QueryNotificationReply : Reply {
     }
 };
 
+// Messages formatted for returning to client across the wire
+struct ReturnMessage {
+    char senderUsername[g_UsernameLimit];
+    char messageContent[g_MessageLimit];
+};
 
-
-// TODO
+// TODO !!!SFLIJFLESDF
 struct QueryMessagesReply : Reply {
     int numberOfMessages;
-    std::vector<std::pair<char [g_UsernameLimit], char [g_MessageLimit]>> notifications;
+    int firstMessageIndex;
+    std::vector<ReturnMessage> messageList;
 
-    QueryMessagesReply() {
+    QueryMessagesReply(int c_numberOfMessages, int c_firstMessageIndex, std::vector<ReturnMessage> c_messageList) {
         operation = QUERY_MESSAGES_REPLY;
+        numberOfMessages = c_numberOfMessages;
+        firstMessageIndex = c_firstMessageIndex;
+        messageList = c_messageList;
     }
 };
 
@@ -498,19 +521,19 @@ struct DeleteAccountReply : Reply {
 };
 
 
-// TODO
-struct MessagesSeenReply : Reply {
+// // TODO PROBABLY DON"T NEED
+// struct MessagesSeenReply : Reply {
 
-    MessagesSeenReply() {
-        operation = MESSAGES_SEEN_REPLY;
-    }
-};
+//     MessagesSeenReply() {
+//         operation = MESSAGES_SEEN_REPLY;
+//     }
+// };
 
 
-// TODO PROBABLY DON"T NEED??
-struct NewMessageReply : Reply {
+// // TODO PROBABLY DON"T NEED??
+// struct NewMessageReply : Reply {
 
-    NewMessageReply() {
-        operation = NEW_MESSAGE_REPLY;
-    }
-};
+//     NewMessageReply() {
+//         operation = NEW_MESSAGE_REPLY;
+//     }
+// };
