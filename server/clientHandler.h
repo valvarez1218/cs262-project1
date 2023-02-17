@@ -3,7 +3,7 @@
 
 #include "storage.h"
 
-// TODO: Function should read from socket and perform operations based on what it read
+// Reads from socket and perform operations based on what it read
 void handleClient(int client_fd) {
     int valread;
     CurrentConversation currentConversation;
@@ -33,7 +33,7 @@ void handleClient(int client_fd) {
                     // Update storage with new user
                     userTrie.addUsername(username, password);
                     strcpy(clientUsername, createAccountMessage.userName);
-                    socketDictionary[clientUsername] = client_fd;
+                    socketDictionary[clientUsername].populate(std::this_thread::get_id(), client_fd);
                 }
 
                 // Create and send a response
@@ -54,9 +54,24 @@ void handleClient(int client_fd) {
                 int verified = userTrie.verifyUser(username, password);
 
                 if (verified) {
+                    // Check if person is already logged in
+                    if (socketDictionary.find(clientUsername) != socketDictionary.end()) {
+                        // Close socket
+                        ForceLogOutReply forceLogOutReply;
+                        send(socketDictionary[clientUsername].socket_fd, &forceLogOutReply, sizeof(forceLogOutReply), 0);
+                        close(socketDictionary[clientUsername].socket_fd);
+
+                        // Kill thread handling original user session
+                        std::thread::id thread_id = socketDictionary[clientUsername].thread_id;
+                        pthread_cancel(threadDictionary[thread_id]);
+                        threadDictionary.erase(thread_id);
+                         
+                    }
+
                     // Logged in! Update storage accordingly
                     strcpy(clientUsername, username.c_str());
-                    socketDictionary[clientUsername] = client_fd;
+                    socketDictionary[clientUsername].populate(std::this_thread::get_id(), client_fd);
+
                 } else {
                     queryResult = 1; // Username and password don't match, username doesn't exist, user deleted
                 }
@@ -70,6 +85,7 @@ void handleClient(int client_fd) {
                 // Close the socket and remove account username from socket dictionary
                 close(client_fd);
                 socketDictionary.erase(clientUsername);
+                
                 break;
 
             case LIST_USERS:
@@ -78,7 +94,7 @@ void handleClient(int client_fd) {
                 ListUsersMessage listUsersMessage;
                 listUsersMessage.parse(client_fd);
 
-                // TODO: check with nictor that this is how his thing works
+                // Get users with prefix
                 std::vector<std::string> usernames = userTrie.returnUsersWithPrefix(listUsersMessage.prefix);
 
                 // Construct and send a reply
@@ -91,18 +107,28 @@ void handleClient(int client_fd) {
                 // Read from socket into sendMessageMessage
                 SendMessageMessage sendMessageMessage;
                 sendMessageMessage.parse(client_fd);
+                int queryResult = 0; // Message sent!
 
-                // Add message to messages dictionary
-                UserPair userPair(clientUsername, sendMessageMessage.recipientUsername);
-                messagesDictionary[userPair].addMessage(clientUsername, sendMessageMessage.recipientUsername, sendMessageMessage.messageContent);
+                bool userExists = userTrie.userExists(clientUsername);
 
-                // Notify recipient of a new message
-                NewMessageMessage newMessageMessage(clientUsername, sendMessageMessage.messageContent);
+                if (userExists) {
+                    // Add message to messages dictionary
+                    UserPair userPair(clientUsername, sendMessageMessage.recipientUsername);
+                    messagesDictionary[userPair].addMessage(clientUsername, sendMessageMessage.recipientUsername, sendMessageMessage.messageContent);
 
-                if (socketDictionary.find(sendMessageMessage.recipientUsername) != socketDictionary.end()){
-                     send(socketDictionary[sendMessageMessage.recipientUsername], &newMessageMessage, sizeof(newMessageMessage), 0);
+                    // Notify recipient of a new message
+                    NewMessageMessage newMessageMessage(clientUsername, sendMessageMessage.messageContent);
 
+                    if (socketDictionary.find(sendMessageMessage.recipientUsername) != socketDictionary.end()){
+                        send(socketDictionary[sendMessageMessage.recipientUsername].socket_fd, &newMessageMessage, sizeof(newMessageMessage), 0);
+
+                    }
+                } else {
+                     queryResult = 1; // User doesn't exist
                 }
+
+                SendMessageReply sendMessageReply(queryResult);
+                send(client_fd, &sendMessageReply, sizeof(sendMessageReply), 0);
 
             }
             case QUERY_NOTIFICATIONS:
@@ -138,16 +164,20 @@ void handleClient(int client_fd) {
                 // Construct and send a reply
                 QueryMessagesReply queryMessagesReply(returnVal.messageList.size(), returnVal.firstMessageIndex, returnVal.messageList);
                 send(client_fd, &queryMessagesReply, sizeof(queryMessagesReply), 0);
+                
 
             }
             case DELETE_ACCOUNT:
             {
-                // TODO: Flag user account as deleted in trie
+                // Flag user account as deleted in trie
+                userTrie.deleteUser(clientUsername);
 
                 // Close the socket and remove account username from socket dictionary
                 close(client_fd);
                 socketDictionary.erase(clientUsername);
+
                 break;
+                
             }
             case MESSAGES_SEEN:
             {
@@ -161,8 +191,13 @@ void handleClient(int client_fd) {
 
             }
             default:
-                // TODO: should report error if not a recognized operation
+                std::cout << "Unrecognized operation\n";
                 break;
         }
     }
+
+    // Closes thread
+    std::thread::id thread_id = socketDictionary[clientUsername].thread_id;
+    threadDictionary.erase(thread_id);
+    pthread_cancel(threadDictionary[thread_id]);
 }

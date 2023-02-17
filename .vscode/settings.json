@@ -3,6 +3,7 @@
         "atomic": "cpp",
         "__mutex_base": "cpp",
         "mutex": "cpp",
-        "memory": "cpp"
+        "memory": "cpp",
+        "__threading_support": "cpp"
     }
 }

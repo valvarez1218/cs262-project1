@@ -73,12 +73,14 @@ int main (int argc, char const* argv[]) {
             perror("accept");
             exit(EXIT_FAILURE);
             
-            
-            // int conn = accept(listenFd, (struct sockaddr *)&clntAdd, &len);
-            // threads.push_back(std::thread(&handle_connection, new_socket));
-        }
+            // Pass new socket to a thread to handle commands
+            std::thread clientThread(handleClient, new_socket);
 
-        close(new_socket);
+            threadDictionary[clientThread.get_id()] = clientThread.native_handle();
+
+            clientThread.detach();
+
+        }
 
     };
  

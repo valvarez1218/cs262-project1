@@ -193,7 +193,19 @@ struct StoredMessages {
 };
 
 std::map<UserPair, StoredMessages> messagesDictionary;
-std::map<char[g_UsernameLimit], int> socketDictionary;
+
+struct HandlerDescriptor {
+    std::thread::id thread_id;
+    int socket_fd;
+
+    void populate (std::thread::id c_thread_id, int c_socket_fd) {
+        thread_id = c_thread_id;
+        socket_fd = c_socket_fd;
+    }
+};
+
+std::map<char[g_UsernameLimit], HandlerDescriptor> socketDictionary;
+std::map<std::thread::id, pthread_t> threadDictionary;
 
 
 
@@ -298,8 +310,8 @@ struct UserTrie {
         }
 
         bool userExists(std::string user) {
-            std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
-            if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size() || !nodeIdxPair.first->isTerminal) {
+            std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(user);
+            if (nodeIdxPair.first == nullptr || nodeIdxPair.second < user.size() || !nodeIdxPair.first->isTerminal) {
                 return false;
             }
 

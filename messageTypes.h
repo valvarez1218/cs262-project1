@@ -31,6 +31,7 @@
 #define DELETE_ACCOUNT_REPLY        17 
 #define MESSAGES_SEEN_REPLY         18
 #define NEW_MESSAGE_REPLY           19
+#define FORCE_LOG_OUT               20
 
 // This is a value corresponding to the supported operations
 typedef char opCode;
@@ -48,19 +49,8 @@ const size_t g_ClientMessageLimit = g_MessageLimit - 1;
 
 const std::string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-
-std::string characterError(std::string field, std::string fieldValue, size_t limit) {
-    return "The " + field + " field takes input of at most " + std::to_string(limit) +
-            " characters.\n '" + fieldValue + "' is too long.";
-}
-
-
 // check that character follows allowed alphabet
 bool validString(std::string inputString) {
-    // No emptry strings
-    if (inputString.size() < 1) {
-        return false;
-    }
     // Check that all characters are from alphabet
     int found = inputString.find_first_not_of(alphabet);
     if (found != std::string::npos) {
@@ -68,6 +58,25 @@ bool validString(std::string inputString) {
     }
     return true;
 }
+
+void validateField(std::string fieldName, std::string fieldValue, const size_t fieldLimit) {
+    if (fieldValue.size() < 1) {
+        std::string errorMsg = fieldName + " cannot be empty string.";
+        throw std::invalid_argument(errorMsg);
+    }
+    if (!validString(fieldValue)) {
+        std::string errorMsg = fieldName + " must be alphanumeric.";
+        throw std::invalid_argument(errorMsg);
+    }
+    if (fieldValue.size() > fieldLimit) {
+        std::string errorMsg = "The " + fieldName + " field takes input of at most " + std::to_string(fieldLimit) +
+            " characters.\n '" + fieldValue + "' is too long.";
+        throw std::invalid_argument(errorMsg);
+    }
+}
+
+
+
 
 struct Message {
     opCode operation;
@@ -118,9 +127,11 @@ struct CreateAccountMessage : Message {
         for (int idx = 0; idx < inputField.size(); idx++) {
             if (idx == 0) {
                 std::string user = inputField[idx];
-                if (user.size() > g_ClientUsernameLimit) {
-                    std::string errorMessage = characterError("username", user, g_ClientUsernameLimit);
-                    throw std::invalid_argument(errorMessage);
+                // TODO: try validateUsername
+                try {
+                    validateField("Username", user, g_ClientUsernameLimit);
+                } catch (std::invalid_argument &e) {
+                    throw e;
                 }
                 user += '\0';
                 strcpy(userName, user.c_str());
@@ -128,9 +139,10 @@ struct CreateAccountMessage : Message {
 
             if (idx == 1) {
                 std::string pass_word = inputField[idx];
-                if (pass_word.size() > g_ClientPasswordLimit) {
-                    std::string errorMessage = characterError("password", pass_word, g_ClientPasswordLimit);
-                    throw std::invalid_argument(errorMessage);
+                try {
+                    validateField("Password", pass_word, g_ClientPasswordLimit);
+                } catch (std::invalid_argument &e) {
+                    throw e;
                 }
                 pass_word += '\0';
                 strcpy(password, pass_word.c_str());
@@ -170,9 +182,10 @@ struct LoginMessage : Message {
         for (int idx = 0; idx < inputField.size(); idx++) {
             if (idx == 0) {
                 std::string user = inputField[idx];
-                if (user.size() > g_ClientUsernameLimit) {
-                    std::string errorMessage = characterError("username", user, g_ClientUsernameLimit);
-                    throw std::invalid_argument(errorMessage);
+                try {
+                    validateField("Username", user, g_ClientUsernameLimit);
+                } catch (std::invalid_argument &e) {
+                    throw e;
                 }
                 user += '\0';
                 strcpy(userName, user.c_str());
@@ -180,9 +193,10 @@ struct LoginMessage : Message {
 
             if (idx == 1) {
                 std::string pass_word = inputField[idx];
-                if (pass_word.size() > g_ClientPasswordLimit) {
-                    std::string errorMessage = characterError("password", pass_word, g_ClientPasswordLimit);
-                    throw std::invalid_argument(errorMessage);
+                try {
+                    validateField("Password", pass_word, g_ClientPasswordLimit);
+                } catch (std::invalid_argument &e) {
+                    throw e;
                 }
                 pass_word += '\0';
                 strcpy(password, pass_word.c_str());
@@ -223,12 +237,13 @@ struct ListUsersMessage : Message {
         }
 
         if (inputs.size() == 1) {
-            std::string input = inputs[0];
-            if (input.size() > g_ClientUsernameLimit) {
-                std::string errorMessage = characterError("username", input, g_ClientUsernameLimit);
-                throw std::invalid_argument(errorMessage);
+            std::string userPrefix = inputs[0];
+            try {
+                validateField("Username", userPrefix, g_ClientUsernameLimit);
+            } catch (std::invalid_argument &e) {
+                throw e;
             }
-            input += '\0';
+            userPrefix += '\0';
             strcpy(prefix, inputs[0].c_str());
         }
     }
@@ -261,9 +276,10 @@ struct SendMessageMessage : Message {
         for (int idx = 0; idx < inputs.size(); idx++) {
             if (idx == 0) {
                 std::string recipient = inputs[idx];
-                if (recipient.size() > g_ClientUsernameLimit) {
-                    std::string errorMessage = characterError("username", recipient, g_ClientUsernameLimit);
-                    throw std::invalid_argument(errorMessage);
+                try {
+                    validateField("Username", recipient, g_ClientUsernameLimit);
+                } catch (std::invalid_argument &e) {
+                    throw e;
                 }
                 recipient += '\0';
                 strcpy(recipientUsername, recipient.c_str());
@@ -272,7 +288,8 @@ struct SendMessageMessage : Message {
             if (idx == 1) {
                 std::string content = inputs[idx];
                 if (content.size() > g_ClientMessageLimit) {
-                    std::string errorMessage = characterError("message_content", content, g_ClientMessageLimit);
+                    std::string errorMessage = "The message_content field takes input of at most " + std::to_string(g_ClientMessageLimit) +
+                                                " characters.\n '" + content + "' is too long.";
                     throw std::invalid_argument(errorMessage);
                 }
                 content += '\0';
@@ -317,9 +334,10 @@ struct QueryMessagesMessage : Message {
         }
 
         std::string user = inputs[0];
-        if (user.size() > g_ClientUsernameLimit) {
-            std::string errorMessage = characterError("username", user, g_ClientUsernameLimit);
-            throw std::invalid_argument(errorMessage);
+        try {
+            validateField("Username", user, g_ClientUsernameLimit);
+        } catch (std::invalid_argument &e) {
+            throw e;
         }
         user += '\0';
         strcpy(username, user.c_str());
@@ -353,9 +371,10 @@ struct DeleteAccountMessage : Message {
         for (int idx = 0; idx < inputs.size(); idx++) {
             if (idx == 0) {
                 std::string user = inputs[idx];
-                if (user.size() > g_ClientUsernameLimit) {
-                    std::string errorMessage = characterError("username", user, g_ClientUsernameLimit);
-                    throw std::invalid_argument(errorMessage);
+                try {
+                    validateField("Username", user, g_ClientUsernameLimit);
+                } catch (std::invalid_argument &e) {
+                    throw e;
                 }
                 user += '\0';
                 strcpy(username, user.c_str());
@@ -363,9 +382,10 @@ struct DeleteAccountMessage : Message {
 
             if (idx == 1) {
                 std::string pass_word = inputs[idx];
-                if (pass_word.size() > g_ClientPasswordLimit) {
-                    std::string errorMessage = characterError("password", pass_word, g_ClientPasswordLimit);
-                    throw std::invalid_argument(errorMessage);
+                try {
+                    validateField("Password", pass_word, g_ClientPasswordLimit);
+                } catch (std::invalid_argument &e) {
+                    throw e;
                 }
                 pass_word += '\0';
                 strcpy(password, pass_word.c_str());
@@ -424,18 +444,26 @@ struct NewMessageMessage : Message {
 
 // TODO
 struct CreateAccountReply : Reply {
-    int queryResult;
+    // 0 = success, 1 = username taken
+    int queryStatus;
 
-    CreateAccountReply(int c_queryResult) {
+    CreateAccountReply() {
+    }
+
+    CreateAccountReply(int c_queryStatus) {
         operation = CREATE_ACCOUNT_REPLY;
-        queryResult = c_queryResult;
+        queryStatus = c_queryStatus;
     }
 };
 
 
 // TODO
 struct LoginReply : Reply {
+    // 0 = success, 1 = failure (username or password incorrect)
     int queryStatus;
+
+    LoginReply() {        
+    }
 
     LoginReply(int c_queryStatus) {
         operation = LOGIN_REPLY;
@@ -465,9 +493,12 @@ struct ListUsersReply : Reply {
 
 // TODO
 struct SendMessageReply : Reply {
+    // 0 = success, 1 = user doesn't exist
+    int queryStatus;
 
-    SendMessageReply() {
+    SendMessageReply(int c_queryStatus) {
         operation = SEND_MESSAGE_REPLY;
+        queryStatus = c_queryStatus;
     }
 };
 
@@ -489,6 +520,11 @@ struct QueryNotificationReply : Reply {
         }
         operation = QUERY_NOTIFICATIONS_REPLY;
     }
+
+    // TODO; reads from socket and fills in fields
+    void parse(int socket_fd) {
+
+    }
 };
 
 // Messages formatted for returning to client across the wire
@@ -497,7 +533,7 @@ struct ReturnMessage {
     char messageContent[g_MessageLimit];
 };
 
-// TODO !!!SFLIJFLESDF
+// Holds messages
 struct QueryMessagesReply : Reply {
     int numberOfMessages;
     int firstMessageIndex;
@@ -520,8 +556,15 @@ struct DeleteAccountReply : Reply {
     }
 };
 
+struct ForceLogOutReply : Reply {
+    
+    ForceLogOutReply() {
+        operation = FORCE_LOG_OUT;
+    }
+};
 
-// // TODO PROBABLY DON"T NEED
+
+// PROBABLY DON"T NEED
 // struct MessagesSeenReply : Reply {
 
 //     MessagesSeenReply() {
@@ -530,7 +573,7 @@ struct DeleteAccountReply : Reply {
 // };
 
 
-// // TODO PROBABLY DON"T NEED??
+// PROBABLY DON"T NEED??
 // struct NewMessageReply : Reply {
 
 //     NewMessageReply() {
