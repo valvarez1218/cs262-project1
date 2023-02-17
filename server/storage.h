@@ -209,18 +209,10 @@ struct std::hash<UserPair>
 
 std::unordered_map<UserPair, StoredMessages> messagesDictionary;
 
-// struct HandlerDescriptor {
-//     std::thread::id thread_id;
-//     int socket_fd;
-
-//     HandlerDescriptor(std::thread::id c_thread_id, int c_socket_fd) {
-//         thread_id = c_thread_id;
-//         socket_fd = c_socket_fd;
-//     }
-// };
-
-// std::map<char[g_UsernameLimit], std::pair<std::thread::id, int>> socketDictionary;
+std::mutex socketDictionary_mutex;
 std::map<std::string, std::pair<std::thread::id, int>> socketDictionary;
+
+std::mutex threadDictionary_mutex;
 std::unordered_map<std::thread::id, pthread_t> threadDictionary;
 
 
@@ -357,7 +349,28 @@ struct UserTrie {
         }
 };
 // TODO: Users Trie
+std::mutex userTrie_mutex;
 UserTrie userTrie;
+
+// Global storage for new messsage operations
+std::mutex queuedOperations_mutex;
+std::unordered_map<std::thread::id, std::vector<NewMessageMessage>> queuedOperationsDictionary;
+
+
+// Cleaning up session-related storage structures
+void cleanup(char clientUsername [g_UsernameLimit], std::thread::id thread_id, int client_fd) {
+    socketDictionary_mutex.lock();
+    threadDictionary_mutex.lock();
+
+    threadDictionary.erase(thread_id);
+    queuedOperationsDictionary.erase(thread_id);
+    socketDictionary.erase(clientUsername);
+    close(client_fd);
+    pthread_cancel(threadDictionary[thread_id]);
+
+    threadDictionary_mutex.unlock();
+    socketDictionary_mutex.unlock();
+}
 // Initialize Trie
 // Add user
 // Find all users associated with a substring
