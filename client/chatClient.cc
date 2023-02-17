@@ -33,8 +33,7 @@ int main (void) {
             continue;
         }
         
-        // TODO: listen for new messages and responses
-
+        readSocket();
      }
 
     return 0;
