@@ -9,9 +9,12 @@ void handleClient(int client_fd) {
     CurrentConversation currentConversation;
     char clientUsername[g_UsernameLimit];
 
+    std::cout << "New thread up!" << std::endl;
+
     while (true) {
         opCode operation;
         valread = read(client_fd, &operation, sizeof(opCode));
+        std::cout << "We've read an operation code!" << std::to_string(operation) << std::endl;
 
         switch (operation) {
             case CREATE_ACCOUNT:
@@ -28,19 +31,26 @@ void handleClient(int client_fd) {
                 int verified = userTrie.verifyUser(username, password);
 
                 if (verified) {
+                    std::cout << "Username '" << clientUsername << "' already existed." << std::endl;
                     queryResult = 1; // Username exists already, 
                 } else {
                     // Update storage with new user
                     userTrie.addUsername(username, password);
                     strcpy(clientUsername, createAccountMessage.userName);
-                    socketDictionary[clientUsername].populate(std::this_thread::get_id(), client_fd);
+                    std::thread::id thread_id = std::this_thread::get_id();
+                    std::pair<std::thread::id, int> handlerDescriptor(thread_id, client_fd);
+                    socketDictionary[std::string(clientUsername)] = handlerDescriptor;
+
+                    std::cout << "Username '" << clientUsername << " verified." << std::endl;;
                 }
+
 
                 // Create and send a response
                 CreateAccountReply createAccountReply(queryResult);
                 send(client_fd, &createAccountReply, sizeof(createAccountReply), 0);
 
             }
+            break;
             case LOGIN:
             {
                 // Parse message
@@ -58,11 +68,11 @@ void handleClient(int client_fd) {
                     if (socketDictionary.find(clientUsername) != socketDictionary.end()) {
                         // Close socket
                         ForceLogOutReply forceLogOutReply;
-                        send(socketDictionary[clientUsername].socket_fd, &forceLogOutReply, sizeof(forceLogOutReply), 0);
-                        close(socketDictionary[clientUsername].socket_fd);
+                        send(socketDictionary[clientUsername].second, &forceLogOutReply, sizeof(forceLogOutReply), 0);
+                        close(socketDictionary[clientUsername].second);
 
                         // Kill thread handling original user session
-                        std::thread::id thread_id = socketDictionary[clientUsername].thread_id;
+                        std::thread::id thread_id = socketDictionary[clientUsername].first;
                         pthread_cancel(threadDictionary[thread_id]);
                         threadDictionary.erase(thread_id);
                          
@@ -70,9 +80,11 @@ void handleClient(int client_fd) {
 
                     // Logged in! Update storage accordingly
                     strcpy(clientUsername, username.c_str());
-                    socketDictionary[clientUsername].populate(std::this_thread::get_id(), client_fd);
-
+                    std::thread::id thread_id = std::this_thread::get_id();
+                    std::pair<std::thread::id, int> handlerDescriptor(thread_id, client_fd);
+                    socketDictionary[std::string(clientUsername)] = handlerDescriptor;
                 } else {
+                    std::cout << "Username '" << clientUsername << "' not found." << std::endl;
                     queryResult = 1; // Username and password don't match, username doesn't exist, user deleted
                 }
 
@@ -81,13 +93,19 @@ void handleClient(int client_fd) {
                 send(client_fd, &loginReply, sizeof(loginReply), 0);
 
             }
+            break;
             case LOGOUT:
+            {
                 // Close the socket and remove account username from socket dictionary
                 close(client_fd);
                 socketDictionary.erase(clientUsername);
-                
-                break;
 
+                // Closes thread
+                std::thread::id thread_id = socketDictionary[clientUsername].first;
+                threadDictionary.erase(thread_id);
+                pthread_cancel(threadDictionary[thread_id]);
+            } 
+            break;
             case LIST_USERS:
             {
                 // Parse message
@@ -100,8 +118,9 @@ void handleClient(int client_fd) {
                 // Construct and send a reply
                 ListUsersReply listUsersReply(usernames.size(), usernames);
                 send(client_fd, &listUsersReply, sizeof(listUsersReply), 0);
-            }
 
+            }
+            break;
             case SEND_MESSAGE:
             {
                 // Read from socket into sendMessageMessage
@@ -120,7 +139,7 @@ void handleClient(int client_fd) {
                     NewMessageMessage newMessageMessage(clientUsername, sendMessageMessage.messageContent);
 
                     if (socketDictionary.find(sendMessageMessage.recipientUsername) != socketDictionary.end()){
-                        send(socketDictionary[sendMessageMessage.recipientUsername].socket_fd, &newMessageMessage, sizeof(newMessageMessage), 0);
+                        send(socketDictionary[sendMessageMessage.recipientUsername].second, &newMessageMessage, sizeof(newMessageMessage), 0);
 
                     }
                 } else {
@@ -131,6 +150,7 @@ void handleClient(int client_fd) {
                 send(client_fd, &sendMessageReply, sizeof(sendMessageReply), 0);
 
             }
+            break;
             case QUERY_NOTIFICATIONS:
             {
                 // Retrieve notifications from the conversations dictionary
@@ -139,7 +159,9 @@ void handleClient(int client_fd) {
                 // Construct and send a reply
                 QueryNotificationReply queryMessagesReply(notifications.size(), notifications);
                 send(client_fd, &queryMessagesReply, sizeof(queryMessagesReply), 0);
+
             }
+            break;
             case QUERY_MESSAGES:
             {
                 // Parse message
@@ -167,6 +189,7 @@ void handleClient(int client_fd) {
                 
 
             }
+            break;
             case DELETE_ACCOUNT:
             {
                 // Flag user account as deleted in trie
@@ -176,9 +199,13 @@ void handleClient(int client_fd) {
                 close(client_fd);
                 socketDictionary.erase(clientUsername);
 
-                break;
-                
+                // Closes thread
+                std::thread::id thread_id = socketDictionary[clientUsername].first;
+                threadDictionary.erase(thread_id);
+                pthread_cancel(threadDictionary[thread_id]);
+ 
             }
+            break;
             case MESSAGES_SEEN:
             {
                 // Parse message
@@ -190,14 +217,10 @@ void handleClient(int client_fd) {
                 messagesDictionary[userPair].setRead(messagesSeenMessage.startingIndex, messagesSeenMessage.startingIndex+messagesSeenMessage.messagesSeen - 1, clientUsername);
 
             }
+            break;
             default:
                 std::cout << "Unrecognized operation\n";
                 break;
         }
     }
-
-    // Closes thread
-    std::thread::id thread_id = socketDictionary[clientUsername].thread_id;
-    threadDictionary.erase(thread_id);
-    pthread_cancel(threadDictionary[thread_id]);
 }

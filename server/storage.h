@@ -31,7 +31,7 @@ struct CurrentConversation {
 
 // Key: user with active conversations, Value: map from users to number of notifications they have
 struct ConversationsDictionary {
-    std::map<std::string, std::map<std::string, int>> conversations;
+    std::unordered_map<std::string, std::unordered_map<std::string, int> > conversations;
     std::mutex notificationsMutex; // TODO: had to move lock up 1 level :(
 
     // increment new messages
@@ -49,8 +49,8 @@ struct ConversationsDictionary {
     }
 
     // TODO: Package notifications to be sent out
-    std::vector<std::pair<char [g_UsernameLimit], char>> getNotifications(char recipientUsername [g_UsernameLimit]) {
-        std::vector<std::pair<char [g_UsernameLimit], char>> allNotifications;
+    std::vector<std::pair<char [g_UsernameLimit], char> > getNotifications(char recipientUsername [g_UsernameLimit]) {
+        std::vector<std::pair<char [g_UsernameLimit], char> > allNotifications;
 
         for (auto const& pair : conversations[recipientUsername]) {
             if (pair.second > 0) {
@@ -89,10 +89,14 @@ struct UserPair {
             smallerUsername = std::string(username1);
             largerUsername = std::string(username2);
         }
-
-
     }
+
+    friend bool operator== (const UserPair& pair1, const UserPair& pair2);
 };
+
+bool operator== (const UserPair& pair1, const UserPair& pair2) {
+    return (pair1.smallerUsername == pair2.smallerUsername) && (pair1.largerUsername == pair2.largerUsername);
+}
 
 // A single messsage from a the message dictionary value vector
 struct StoredMessage {
@@ -192,21 +196,32 @@ struct StoredMessages {
 
 };
 
-std::map<UserPair, StoredMessages> messagesDictionary;
 
-struct HandlerDescriptor {
-    std::thread::id thread_id;
-    int socket_fd;
-
-    void populate (std::thread::id c_thread_id, int c_socket_fd) {
-        thread_id = c_thread_id;
-        socket_fd = c_socket_fd;
+template<>
+struct std::hash<UserPair>
+{
+    size_t operator()(const UserPair& pair) const
+    {
+        std::string concat = pair.smallerUsername + pair.largerUsername;
+        return std::hash<std::string>{}(concat);
     }
 };
 
-std::map<char[g_UsernameLimit], HandlerDescriptor> socketDictionary;
-std::map<std::thread::id, pthread_t> threadDictionary;
+std::unordered_map<UserPair, StoredMessages> messagesDictionary;
 
+// struct HandlerDescriptor {
+//     std::thread::id thread_id;
+//     int socket_fd;
+
+//     HandlerDescriptor(std::thread::id c_thread_id, int c_socket_fd) {
+//         thread_id = c_thread_id;
+//         socket_fd = c_socket_fd;
+//     }
+// };
+
+// std::map<char[g_UsernameLimit], std::pair<std::thread::id, int>> socketDictionary;
+std::map<std::string, std::pair<std::thread::id, int>> socketDictionary;
+std::unordered_map<std::thread::id, pthread_t> threadDictionary;
 
 
 struct CharNode {
@@ -221,6 +236,7 @@ struct CharNode {
 };
 
 std::unordered_map<CharNode*, std::string> userPasswordMap;
+
 
 struct UserTrie {
     private:

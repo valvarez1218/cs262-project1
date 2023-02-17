@@ -254,4 +254,7 @@ void parseInput (std::string userInput) {
 
 void printUsage() {
     // TODO: print usage for user
+    std::cout << "Chat Usage:" << std::endl;
+    std::cout << "      If Not Logged In:" << std::endl;
+    std::cout << "          - create_account username password:         creates account and logs you in." << std::endl;
 }

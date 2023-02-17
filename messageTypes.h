@@ -98,8 +98,8 @@ struct Reply {
 
 
 struct CreateAccountMessage : Message {
-    char userName[g_UsernameLimit] = {0};
-    char password[g_PasswordLimit] = {0};
+    char userName[g_UsernameLimit];
+    char password[g_PasswordLimit];
 
     CreateAccountMessage () {
         operation = CREATE_ACCOUNT;
@@ -471,19 +471,26 @@ struct LoginReply : Reply {
     }
 };
 
+struct Username {
+    char username[g_UsernameLimit];
+    
+    Username(std::string c_username) {
+        strcpy(username, c_username.c_str());
+    }
+};
+
 
 // TODO
 struct ListUsersReply : Reply {
     int numberOfUsers;
-    std::vector<char [g_UsernameLimit]> usernames;
+    std::vector<Username> usernames;
 
     ListUsersReply(int c_numberOfUsers, std::vector<std::string> c_usernames) {
         operation = LIST_USERS_REPLY;
         numberOfUsers = c_numberOfUsers;
 
         for (int i = 0; i < c_usernames.size(); i++) {
-            char newUsername[g_UsernameLimit];
-            strcpy(newUsername, c_usernames[i].c_str());
+            Username newUsername(c_usernames[i]);
             usernames.push_back(newUsername);
         }
 
@@ -506,9 +513,9 @@ struct SendMessageReply : Reply {
 // TODO
 struct QueryNotificationReply : Reply {
     int numberOfUsers;
-    std::vector<std::pair<char [g_UsernameLimit], char>> notifications;
+    std::vector<std::pair<char [g_UsernameLimit], char> > notifications;
 
-    QueryNotificationReply(int users, std::vector<std::pair<char [g_UsernameLimit], char>> notificationsList) {
+    QueryNotificationReply(int users, std::vector<std::pair<char [g_UsernameLimit], char> > notificationsList) {
         numberOfUsers = users;
 
         for (int i=0; i < notificationsList.size(); i++) {

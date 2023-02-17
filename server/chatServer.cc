@@ -72,15 +72,14 @@ int main (int argc, char const* argv[]) {
             < 0) {
             perror("accept");
             exit(EXIT_FAILURE);
-            
-            // Pass new socket to a thread to handle commands
-            std::thread clientThread(handleClient, new_socket);
-
-            threadDictionary[clientThread.get_id()] = clientThread.native_handle();
-
-            clientThread.detach();
-
         }
+        
+        // Pass new socket to a thread to handle commands
+        std::thread clientThread(handleClient, new_socket);
+
+        threadDictionary[clientThread.get_id()] = clientThread.native_handle();
+
+        clientThread.detach();
 
     };
  

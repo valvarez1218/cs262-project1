@@ -4,6 +4,10 @@
         "__mutex_base": "cpp",
         "mutex": "cpp",
         "memory": "cpp",
-        "__threading_support": "cpp"
+        "__threading_support": "cpp",
+        "unordered_map": "cpp",
+        "iosfwd": "cpp",
+        "string": "cpp",
+        "map": "cpp"
     }
 }
