@@ -113,15 +113,14 @@ void parseInput (std::string userInput) {
 
     // remove operation from beginning of input vector
     std::vector<std::string> remainingInputVector(inputVector.begin()+1, inputVector.end());
-    Message* message;
+    // Message* message;
     switch (operation)
     {
         case CREATE_ACCOUNT:
             {
                 CreateAccountMessage msg;
-                message = &msg;
                 try {
-                    message->populate(remainingInputVector);
+                    msg.populate(remainingInputVector);
                     createAccount(server_socket, msg);
                 } catch (std::runtime_error &e) {
                     std::cout << "In Case CREATE_ACCOUNT:" << std::endl;
@@ -135,9 +134,8 @@ void parseInput (std::string userInput) {
         case LOGIN:
             {
                 LoginMessage msg;
-                message = &msg;
                 try {
-                    message->populate(remainingInputVector);
+                    msg.populate(remainingInputVector);
                     login(server_socket, msg);
                 } catch (std::runtime_error &e) {
                     std::cout << "In case LOGIN:" << std::endl;
@@ -151,9 +149,8 @@ void parseInput (std::string userInput) {
         case LOGOUT:
             {
                 LogoutMessage msg;
-                message = &msg;
                 try {
-                    message->populate(remainingInputVector);
+                    msg.populate(remainingInputVector);
                     logout(server_socket, msg);
                 } catch (std::runtime_error &e) {
                     std::cout << "In case LOGOUT:" << std::endl;
@@ -167,9 +164,8 @@ void parseInput (std::string userInput) {
         case LIST_USERS:
             {
                 ListUsersMessage msg;
-                message = &msg;
                 try {
-                    message->populate(remainingInputVector);
+                    msg.populate(remainingInputVector);
                     listUsers(server_socket, msg);
                 } catch (std::runtime_error &e) {
                     std::cout << "In case LIST_USERS:" << std::endl;
@@ -183,9 +179,8 @@ void parseInput (std::string userInput) {
         case SEND_MESSAGE:
             {
                 SendMessageMessage msg;
-                message = &msg;
                 try {
-                    message->populate(remainingInputVector);
+                    msg.populate(remainingInputVector);
                     sendMessage(server_socket, msg);
                 } catch (std::runtime_error &e) {
                     std::cout << "In case SEND_MESSAGE:" << std::endl;
@@ -199,9 +194,8 @@ void parseInput (std::string userInput) {
         case QUERY_NOTIFICATIONS:
             {
                 QueryNotificationsMessage msg;
-                message = &msg;
                 try {
-                    message->populate(remainingInputVector);
+                    msg.populate(remainingInputVector);
                     queryNotifications(server_socket, msg);
                 } catch (std::runtime_error &e) {
                     std::cout << "In case QUERY_NOTIFICATIONS:" << std::endl;
@@ -215,9 +209,8 @@ void parseInput (std::string userInput) {
         case QUERY_MESSAGES:
             {
                 QueryMessagesMessage msg;
-                message = &msg;
                 try {
-                    message->populate(remainingInputVector);
+                    msg.populate(remainingInputVector);
                     queryMessages(server_socket, msg);
                 } catch (std::runtime_error &e) {
                     std::cout << "In case QUERY_MESSAGES:" << std::endl;
@@ -231,9 +224,8 @@ void parseInput (std::string userInput) {
         case DELETE_ACCOUNT:
             {
                 DeleteAccountMessage msg;
-                message = &msg;
                 try {
-                    message->populate(remainingInputVector);
+                    msg.populate(remainingInputVector);
                     deleteAccount(server_socket, msg);
                 } catch (std::runtime_error &e) {
                     std::cout << "In case DELETE_ACCOUNT:" << std::endl;

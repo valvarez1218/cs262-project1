@@ -8,8 +8,12 @@ std::string loggedInErrorMsg(std::string operationAttempted) {
 }
 
 void createAccount(int socket_fd, CreateAccountMessage &create_account_message) {
-    // throw std::runtime_error("createAccount() not implemented");
-    send(socket_fd, &create_account_message, sizeof(CreateAccountMessage), 0);
+    if (USER_LOGGED_IN) {
+        throw std::runtime_error("Cannot create account if already logged in.");
+    }
+
+    int valsent = send(socket_fd, &create_account_message, sizeof(CreateAccountMessage), 0);
+    std::cout << "Send: " << std::to_string(valsent) << std::endl;
 
     CreateAccountReply serverReply;
     int valread = read(socket_fd, &serverReply, sizeof(CreateAccountReply));
@@ -29,7 +33,9 @@ void createAccount(int socket_fd, CreateAccountMessage &create_account_message) 
 
 
 void login(int socket_fd, LoginMessage &login_message) {
-    // throw std::runtime_error("login() not implemented");
+    if (USER_LOGGED_IN) {
+        throw std::runtime_error("Cannot log in if already logged in.");
+    }
 
     send(socket_fd, &login_message, sizeof(LoginMessage), 0);
     LoginReply serverReply;
@@ -66,7 +72,14 @@ void listUsers(int socket_fd, ListUsersMessage &list_users_message) {
 
     send(socket_fd, &list_users_message, sizeof(ListUsersMessage), 0);
 
-    throw std::runtime_error("listUsers() not implemented");
+    ListUsersReply serverReply;
+    
+    try {
+        // the parse function prints usernames to command line
+        serverReply.readUsernames(socket_fd);
+    } catch(std::runtime_error &e) {
+        throw e;
+    }
 }
 
 
@@ -74,7 +87,7 @@ void sendMessage(int socket_fd, SendMessageMessage &send_message_message) {
     if (!USER_LOGGED_IN) {
         throw std::runtime_error(loggedInErrorMsg("send_message"));
     }
-    // throw std::runtime_error("sendMessage() not implemented");
+
     send(socket_fd, &send_message_message, sizeof(SendMessageMessage), 0);
 }
 
@@ -84,7 +97,10 @@ void queryNotifications(int socket_fd, QueryNotificationsMessage &query_notifica
         throw std::runtime_error(loggedInErrorMsg("query_notifications"));
     }
 
-    throw std::runtime_error("queryNotifications() not implemented");
+    send(socket_fd, &query_notification_message, sizeof(QueryMessagesMessage), 0);
+
+    QueryNotificationReply serverReply;
+    serverReply.readNotifications(socket_fd);
 }
 
 
@@ -93,6 +109,11 @@ void queryMessages(int socket_fd, QueryMessagesMessage &query_messages_message) 
         throw std::runtime_error(loggedInErrorMsg("query_messages"));
     }
 
+    send(socket_fd, &query_messages_message, sizeof(QueryMessagesMessage), 0);
+
+    QueryMessagesReply serverReply;
+    int messagesRead = serverReply.readMessages(socket_fd);
+    int firstIdx = serverReply.firstMessageIndex;
     throw std::runtime_error("queryMessages() not implemented");
 }
 

@@ -78,17 +78,17 @@ void validateField(std::string fieldName, std::string fieldValue, const size_t f
 
 
 
-struct Message {
-    opCode operation;
+// struct Message {
+//     opCode operation;
 
-    virtual bool parse (int socket_fd) {
-        throw NotImplementedException;
-    };
+//     virtual bool parse (int socket_fd) {
+//         throw NotImplementedException;
+//     };
 
-    virtual void populate (std::vector<std::string> inputFields) {
-        throw std::runtime_error("'populate' method not implemented for this class.");
-    };
-};
+//     virtual void populate (std::vector<std::string> inputFields) {
+//         throw std::runtime_error("'populate' method not implemented for this class.");
+//     };
+// };
 
 
 struct Reply {
@@ -97,7 +97,8 @@ struct Reply {
 };
 
 
-struct CreateAccountMessage : Message {
+struct CreateAccountMessage {
+    opCode operation;
     char userName[g_UsernameLimit];
     char password[g_PasswordLimit];
 
@@ -152,7 +153,8 @@ struct CreateAccountMessage : Message {
 };
 
 
-struct LoginMessage : Message {
+struct LoginMessage {
+    opCode operation;
     char userName[g_UsernameLimit] = {0};
     char password[g_PasswordLimit] = {0};
     
@@ -205,7 +207,8 @@ struct LoginMessage : Message {
     }
 };
 
-struct LogoutMessage : Message  {
+struct LogoutMessage {
+    opCode operation;
     
     LogoutMessage () {
         operation = LOGOUT;
@@ -219,7 +222,8 @@ struct LogoutMessage : Message  {
 };
 
 
-struct ListUsersMessage : Message {
+struct ListUsersMessage {
+    opCode operation;
     char prefix[g_UsernameLimit] = {0};
 
     ListUsersMessage() {
@@ -250,7 +254,8 @@ struct ListUsersMessage : Message {
 };
 
 
-struct SendMessageMessage : Message {
+struct SendMessageMessage {
+    opCode operation;
     char recipientUsername[g_UsernameLimit];
     char messageContent[g_MessageLimit];
 
@@ -301,8 +306,8 @@ struct SendMessageMessage : Message {
 
 
 
-struct QueryNotificationsMessage : Message {
-
+struct QueryNotificationsMessage {
+    opCode operation;
     QueryNotificationsMessage() {
         operation = QUERY_NOTIFICATIONS;
     }
@@ -316,7 +321,8 @@ struct QueryNotificationsMessage : Message {
 
 
 
-struct QueryMessagesMessage : Message {
+struct QueryMessagesMessage {
+    opCode operation;
     char username[g_UsernameLimit];
 
     QueryMessagesMessage () {
@@ -346,7 +352,8 @@ struct QueryMessagesMessage : Message {
 
 
 
-struct DeleteAccountMessage : Message {
+struct DeleteAccountMessage {
+    opCode operation;
     char username[g_UsernameLimit];
     char password[g_PasswordLimit];
 
@@ -395,9 +402,10 @@ struct DeleteAccountMessage : Message {
 };
 
 
-struct MessagesSeenMessage : Message {
-    u_int messagesSeen;
-    u_int startingIndex;
+struct MessagesSeenMessage {
+    opCode operation;
+    int messagesSeen;
+    int startingIndex;
     char otherUsername[g_UsernameLimit];
 
     MessagesSeenMessage() {
@@ -421,7 +429,8 @@ struct MessagesSeenMessage : Message {
 
 
 
-struct NewMessageMessage : Message {
+struct NewMessageMessage {
+    opCode operation;
     char senderUsername[g_UsernameLimit];
     char messageContent[g_MessageLimit];
 
@@ -443,8 +452,8 @@ struct NewMessageMessage : Message {
 
 
 // TODO
-struct CreateAccountReply : Reply {
-    // 0 = success, 1 = username taken
+struct CreateAccountReply {
+    opCode operation;
     int queryStatus;
 
     CreateAccountReply() {
@@ -458,7 +467,8 @@ struct CreateAccountReply : Reply {
 
 
 // TODO
-struct LoginReply : Reply {
+struct LoginReply {
+    opCode operation;
     // 0 = success, 1 = failure (username or password incorrect)
     int queryStatus;
 
@@ -473,6 +483,9 @@ struct LoginReply : Reply {
 
 struct Username {
     char username[g_UsernameLimit];
+
+    // default constructor, initializes nothing
+    Username(){}
     
     Username(std::string c_username) {
         strcpy(username, c_username.c_str());
@@ -480,10 +493,13 @@ struct Username {
 };
 
 
-// TODO
-struct ListUsersReply : Reply {
+struct ListUsersReply {
+    opCode operation;
     int numberOfUsers;
     std::vector<Username> usernames;
+
+    // Default Constructor, initializes nothing
+    ListUsersReply(){}
 
     ListUsersReply(int c_numberOfUsers, std::vector<std::string> c_usernames) {
         operation = LIST_USERS_REPLY;
@@ -493,13 +509,34 @@ struct ListUsersReply : Reply {
             Username newUsername(c_usernames[i]);
             usernames.push_back(newUsername);
         }
+    }
 
+    void readUsernames(int socket_fd) {
+        int valread = read(socket_fd, &operation, sizeof(opCode));
+        if (valread == -1) {
+            throw std::runtime_error("Error reading operation code from socket.");
+        }
+
+        valread = read(socket_fd, &numberOfUsers, sizeof(int));
+        if (valread == -1) {
+            throw std::runtime_error("Error reading number of users from socket.");
+        }
+
+        for (int userCount = 0; userCount < numberOfUsers; userCount++) {
+            Username user;
+            valread = read(socket_fd, &user, sizeof(Username));
+            if (valread == -1) {
+                throw std::runtime_error("Error reading username from socket.");
+            }
+            std::cout << user.username << std::endl;
+        }
     }
 };
 
 
 // TODO
-struct SendMessageReply : Reply {
+struct SendMessageReply {
+    opCode operation;
     // 0 = success, 1 = user doesn't exist
     int queryStatus;
 
@@ -510,10 +547,14 @@ struct SendMessageReply : Reply {
 };
 
 
-// TODO
-struct QueryNotificationReply : Reply {
+struct QueryNotificationReply {
+    opCode operation;
     int numberOfUsers;
     std::vector<std::pair<char [g_UsernameLimit], char> > notifications;
+
+
+    // Default constructor, initializes nothing
+    QueryNotificationReply(){};
 
     QueryNotificationReply(int users, std::vector<std::pair<char [g_UsernameLimit], char> > notificationsList) {
         numberOfUsers = users;
@@ -528,9 +569,26 @@ struct QueryNotificationReply : Reply {
         operation = QUERY_NOTIFICATIONS_REPLY;
     }
 
-    // TODO; reads from socket and fills in fields
-    void parse(int socket_fd) {
+    // reads from socket and fills in fields
+    void readNotifications(int socket_fd) {
+        int valread = read(socket_fd, &operation, sizeof(opCode));
+        if (valread == -1) {
+            throw std::runtime_error("Error reading operation from socket.");
+        }
 
+        valread = read(socket_fd, &numberOfUsers, sizeof(int));
+        if (valread == -1) {
+            throw std::runtime_error("Error reading number of users from socket.");
+        }
+
+        for (int notificationsCounter = 0; notificationsCounter < numberOfUsers; notificationsCounter++) {
+            std::pair<char[g_UsernameLimit], char> userNotesPair;
+            valread = read(socket_fd, &userNotesPair, sizeof(userNotesPair));
+            if (valread == -1) {
+                throw std::runtime_error("Error reading notification from socket.");
+            }
+            std::cout << userNotesPair.first << ": " << std::to_string(userNotesPair.second) << " new message(s)" << std::endl;
+        }
     }
 };
 
@@ -541,10 +599,14 @@ struct ReturnMessage {
 };
 
 // Holds messages
-struct QueryMessagesReply : Reply {
+struct QueryMessagesReply {
+    opCode operation;
     int numberOfMessages;
     int firstMessageIndex;
     std::vector<ReturnMessage> messageList;
+
+    // Default constructor, initializes nothing
+    QueryMessagesReply(){}
 
     QueryMessagesReply(int c_numberOfMessages, int c_firstMessageIndex, std::vector<ReturnMessage> c_messageList) {
         operation = QUERY_MESSAGES_REPLY;
@@ -552,18 +614,49 @@ struct QueryMessagesReply : Reply {
         firstMessageIndex = c_firstMessageIndex;
         messageList = c_messageList;
     }
+
+    int readMessages(int socket_fd) {
+        int valread = read(socket_fd, &operation, sizeof(opCode));
+        if (valread == -1) {
+            throw std::runtime_error("Error reading operation from socket.");
+        }
+
+        valread = read(socket_fd, &numberOfMessages, sizeof(int));
+        if (valread == -1) {
+            throw std::runtime_error("Error reading number of messages from socket.");
+        }
+
+        valread = read(socket_fd, &firstMessageIndex, sizeof(int));
+        if (valread == -1) {
+            throw std::runtime_error("Error reading first message index from socket.");
+        }
+
+        for (int numMessagesRead = 0; numMessagesRead < numberOfMessages; numMessagesRead++) {
+            ReturnMessage msg;
+            valread = read(socket_fd, &msg, sizeof(ReturnMessage));
+            if (valread == -1) {
+                std::cout << "Error reading message from socket." << std::endl;
+                return numMessagesRead;
+            }
+            std::cout << msg.senderUsername << ":  " << msg.messageContent << std::endl;
+        }
+
+        return numberOfMessages;
+    }
 };
 
 
 // TODO
-struct DeleteAccountReply : Reply {
+struct DeleteAccountReply {
+    opCode operation;
 
     DeleteAccountReply() {
         operation = DELETE_ACCOUNT_REPLY;
     }
 };
 
-struct ForceLogOutReply : Reply {
+struct ForceLogOutReply {
+    opCode operation;
     
     ForceLogOutReply() {
         operation = FORCE_LOG_OUT;
