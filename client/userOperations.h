@@ -112,9 +112,17 @@ void queryMessages(int socket_fd, QueryMessagesMessage &query_messages_message) 
     send(socket_fd, &query_messages_message, sizeof(QueryMessagesMessage), 0);
 
     QueryMessagesReply serverReply;
-    int messagesRead = serverReply.readMessages(socket_fd);
-    int firstIdx = serverReply.firstMessageIndex;
-    throw std::runtime_error("queryMessages() not implemented");
+    try {
+        int messagesRead = serverReply.readMessages(socket_fd);
+        int firstIdx = serverReply.firstMessageIndex;
+        MessagesSeenMessage msg(messagesRead, firstIdx);
+        send(socket_fd, &msg, sizeof(MessagesSeenMessage), 0);
+    } catch (std::runtime_error &e) {
+        MessagesSeenMessage msg(0, -1);
+        send(socket_fd, &msg, sizeof(MessagesSeenMessage), 0);
+        throw e;
+    }
+
 }
 
 
@@ -123,5 +131,24 @@ void deleteAccount(int socket_fd, DeleteAccountMessage &delete_account_message) 
         throw std::runtime_error(loggedInErrorMsg("delete_account"));
     }
 
-    throw std::runtime_error("deleteAccount() not implemented");
+    send(socket_fd, &delete_account_message, sizeof(DeleteAccountMessage), 0);
+}
+
+
+// handle server messages
+void readSocket(int socket_fd) {
+    opCode operation;
+    int valread = read(socket_fd, &operation, sizeof(opCode));
+
+    switch (operation) {
+        case NEW_MESSAGE:
+            {
+                NewMessageMessage msg;
+                try {
+                    msg.parse(socket_fd);
+                } catch (std::runtime_error &e) {
+                    throw e;
+                }
+            }
+    }
 }

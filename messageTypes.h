@@ -406,10 +406,16 @@ struct MessagesSeenMessage {
     opCode operation;
     int messagesSeen;
     int startingIndex;
-    char otherUsername[g_UsernameLimit];
+    // char otherUsername[g_UsernameLimit];
 
     MessagesSeenMessage() {
         operation = MESSAGES_SEEN;
+    }
+
+    MessagesSeenMessage(int numSeen, int startingIdx) {
+        operation = MESSAGES_SEEN;
+        messagesSeen = numSeen;
+        startingIndex = startingIdx;
     }
 
     bool parse (int socket_fd) {
@@ -420,10 +426,10 @@ struct MessagesSeenMessage {
         valread = read(socket_fd, &startingIndex, sizeof(u_int));
         return valread == -1 ? false : true;
 
-        valread = read(socket_fd, &otherUsername[0], g_UsernameLimit);
-        if (valread == -1) {
-            return false;
-        }
+        // valread = read(socket_fd, &otherUsername[0], g_UsernameLimit);
+        // if (valread == -1) {
+        //     return false;
+        // }
     }
 };
 
@@ -432,21 +438,24 @@ struct MessagesSeenMessage {
 struct NewMessageMessage {
     opCode operation;
     char senderUsername[g_UsernameLimit];
-    char messageContent[g_MessageLimit];
+    // char messageContent[g_MessageLimit];
+
+    // Default constructor, initializes nothing
+    NewMessageMessage(){}
 
     NewMessageMessage(char username[g_UsernameLimit], char message[g_MessageLimit]) {
         operation = NEW_MESSAGE;
         strcpy(senderUsername, username);
-        strcpy(messageContent, message);
+        // strcpy(messageContent, message);
     }
 
-    bool parse (int socket_fd) {
+    void parse (int socket_fd) {
         ssize_t valread = read(socket_fd, &senderUsername[0], g_UsernameLimit);
         if (valread == -1) {
-            return false;
+            throw std::runtime_error("Error reading new message from socket.");
         }
-        valread = read(socket_fd, &messageContent[0], g_MessageLimit);
-        return valread == -1 ? false : true;
+        // valread = read(socket_fd, &messageContent[0], g_MessageLimit);
+        // return valread == -1 ? false : true;
     }
 };
 

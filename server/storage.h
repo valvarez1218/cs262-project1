@@ -233,6 +233,8 @@ struct CharNode {
         character = c;
         isTerminal = b;
     }
+
+    friend struct UserTrie;
 };
 
 std::unordered_map<CharNode*, std::string> userPasswordMap;
