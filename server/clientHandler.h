@@ -15,6 +15,7 @@ void handleClient(int client_fd) {
     while (true) {
         // Run queued operations if they exist
         if (queuedOperationsDictionary.find(thread_id) != queuedOperationsDictionary.end()) {
+            std::cout << "Running queued operations for '" << clientUsername << "'" << std::endl;
             for (int i = 0; i < queuedOperationsDictionary[thread_id].size(); i++) {
                 NewMessageMessage newMessageMessage = queuedOperationsDictionary[thread_id][i];
 
@@ -188,6 +189,10 @@ void handleClient(int client_fd) {
                 std::cout << "Getting notifications for '" << clientUsername << "'" << std::endl;
                 // Retrieve notifications from the conversations dictionary
                 std::vector<std::pair<char [g_UsernameLimit], char> > notifications = conversationsDictionary.getNotifications(clientUsername);
+
+                for (int i = 0; i < notifications.size(); i++) {
+                    std::cout << "Username: " << notifications[i].first << ", " << std::to_string(notifications[i].second) << " notifications" << std::endl;
+                }
 
                 // Construct and send a reply
                 QueryNotificationReply queryNotificationsReply(notifications.size(), notifications);
