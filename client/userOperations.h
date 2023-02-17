@@ -1,4 +1,5 @@
 #include "../messageTypes.h"
+#include "establishConnection.h"
 
 // Boolean determining whether the user has logged in
 bool USER_LOGGED_IN = false;
@@ -13,7 +14,6 @@ void createAccount(int socket_fd, CreateAccountMessage &create_account_message) 
     }
 
     int valsent = send(socket_fd, &create_account_message, sizeof(CreateAccountMessage), 0);
-    std::cout << "Send: " << std::to_string(valsent) << std::endl;
 
     CreateAccountReply serverReply;
     int valread = read(socket_fd, &serverReply, sizeof(CreateAccountReply));
@@ -136,19 +136,35 @@ void deleteAccount(int socket_fd, DeleteAccountMessage &delete_account_message) 
 
 
 // handle server messages
-void readSocket(int socket_fd) {
+void readSocket() {
     opCode operation;
-    int valread = read(socket_fd, &operation, sizeof(opCode));
+    timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 400;
+    setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+
+    int valread = read(server_socket, &operation, sizeof(opCode));
+    std::cout << "We're in read socket. We read " << std::to_string(operation) << std::endl;
 
     switch (operation) {
         case NEW_MESSAGE:
             {
                 NewMessageMessage msg;
                 try {
-                    msg.parse(socket_fd);
+                    msg.parse(server_socket);
                 } catch (std::runtime_error &e) {
                     throw e;
                 }
             }
+            break;
+        case FORCE_LOG_OUT:
+            {
+                std::cout << "Log in on another device detected. Session ended." << std::endl;
+                USER_LOGGED_IN = false;
+            }
+            break;
     }
+    std::cout << "We're leaving read socket" << std::endl;
+    tv.tv_usec = 0;
+    setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 }

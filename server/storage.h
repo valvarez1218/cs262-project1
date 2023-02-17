@@ -321,7 +321,7 @@ struct UserTrie {
 
         bool userExists(std::string user) {
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(user);
-            if (nodeIdxPair.first == nullptr || nodeIdxPair.second < user.size() || !nodeIdxPair.first->isTerminal) {
+            if (nodeIdxPair.first == nullptr || nodeIdxPair.second < user.size()-1 || !nodeIdxPair.first->isTerminal) {
                 return false;
             }
 

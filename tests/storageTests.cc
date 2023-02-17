@@ -246,6 +246,23 @@ TEST(UsernameTrieStorage, PasswordStorage) {
   EXPECT_EQ(usernameTrie.verifyUser("Vic", "password4"), false);
 }
 
+TEST(UsernameTrieStorage, UserExists) {
+  UserTrie usernameTrie;
+  std::string user1 = "Victor";
+  std::string user2 = "Carolyn";
+  std::string user3 = "Carlos";
+  std::string user4 = "Vicky";
+
+  usernameTrie.addUsername(user1, "password1");
+  usernameTrie.addUsername(user2, "password2");
+  usernameTrie.addUsername(user3, "password3");
+  usernameTrie.addUsername(user4, "password4");
+
+  EXPECT_EQ(usernameTrie.userExists("Victor"), true);
+  EXPECT_EQ(usernameTrie.userExists("Carolyn"), true);
+  EXPECT_EQ(usernameTrie.userExists("Taco"), false);
+}
+
 int main(int argc, char* argv[]) {
   ::testing::InitGoogleTest(&argc,argv);
   return RUN_ALL_TESTS();

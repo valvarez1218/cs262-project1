@@ -1,6 +1,5 @@
 // #include "../messageTypes.h"
 #include "userOperations.h"
-#include "establishConnection.h"
 
 #include <unordered_map>
 
@@ -91,7 +90,9 @@ std::vector<std::string> makeStringVector (std::string inputString) {
 
 // This function will parse the user input and return the corresponding operation code
 void parseInput (std::string userInput) {
-
+    if (userInput.size() == 0) {
+        return;
+    }
     // Convert input string into vector of strings
     std::vector<std::string> inputVector;
     try {
