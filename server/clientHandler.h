@@ -41,23 +41,26 @@ void handleClient(int client_fd) {
                 std::string username = createAccountMessage.userName;
                 std::string password = createAccountMessage.password;
 
-                userTrie_mutex.lock();
-                int verified = userTrie.verifyUser(username, password);
-                userTrie_mutex.unlock();
 
-                if (verified) {
+
+                if (userTrie.userExists(username)) {
                     std::cout << "Username '" << clientUsername << "' already existed." << std::endl;
                     queryResult = 1; // Username exists already, 
                 } else {
                     // Update storage with new user
+                    std::cout << "Adding user '" << username << " to trie" << std::endl;
+                    userTrie_mutex.lock();
                     userTrie.addUsername(username, password);
+                    userTrie_mutex.unlock();
+
+                    std::cout << "Adding user '" << username << " to socketDict" << std::endl;
                     strcpy(clientUsername, createAccountMessage.userName);
                     std::pair<std::thread::id, int> handlerDescriptor(thread_id, client_fd);
                     socketDictionary_mutex.lock();
                     socketDictionary[std::string(clientUsername)] = handlerDescriptor;
-                    socketDictionary_mutex.lock();
+                    socketDictionary_mutex.unlock();
 
-                    std::cout << "Username '" << clientUsername << " verified." << std::endl;;
+                    std::cout << "Username '" << clientUsername << " verified." << std::endl;
                 }
 
 
@@ -78,31 +81,30 @@ void handleClient(int client_fd) {
                 std::string password = loginMessage.password;
 
                 userTrie_mutex.lock();
-                int verified = userTrie.verifyUser(username, password);
+                bool verified = userTrie.verifyUser(username, password);
                 userTrie_mutex.unlock();
 
                 if (verified) {
                     // Check if person is already logged in
                     socketDictionary_mutex.lock();
                     threadDictionary_mutex.lock();
-                    if (socketDictionary.find(clientUsername) != socketDictionary.end()) {
+                    if (socketDictionary.find(std::string(clientUsername)) != socketDictionary.end()) {
+                        std::cout << "Person '" << clientUsername << " already logged in" << std::endl;
                         // Close socket
                         ForceLogOutReply forceLogOutReply;
-                        send(socketDictionary[clientUsername].second, &forceLogOutReply, sizeof(forceLogOutReply), 0);
-                        close(socketDictionary[clientUsername].second);
-
+                        send(socketDictionary[std::string(clientUsername)].second, &forceLogOutReply, sizeof(forceLogOutReply), 0);
+                        
                         // Kill thread handling original user session
-                        std::thread::id thread_id = socketDictionary[clientUsername].first;
-                        pthread_cancel(threadDictionary[thread_id]);
-                        threadDictionary.erase(thread_id);
+                        cleanup(std::string(clientUsername), socketDictionary[std::string(clientUsername)].first, socketDictionary[std::string(clientUsername)].second);
                          
                     }
                     // Logged in! Update storage accordingly
+                    std::cout << "Logging in username '" << username << "'" << std::endl;
                     strcpy(clientUsername, username.c_str());
                     std::pair<std::thread::id, int> handlerDescriptor(thread_id, client_fd);
                     socketDictionary[std::string(clientUsername)] = handlerDescriptor;
 
-                    threadDictionary_mutex.lock();
+                    threadDictionary_mutex.unlock();
                     socketDictionary_mutex.unlock();
                 } else {
                     std::cout << "Username '" << clientUsername << "' not found." << std::endl;
@@ -117,8 +119,13 @@ void handleClient(int client_fd) {
             break;
             case LOGOUT:
             {
+                std::cout << "Logging out username '" << clientUsername << "'" << std::endl;
                 // Closes thread
-                cleanup(clientUsername, thread_id, client_fd);
+                socketDictionary_mutex.lock();
+                threadDictionary_mutex.lock();
+                cleanup(std::string(clientUsername), thread_id, client_fd);
+                socketDictionary_mutex.unlock();
+                threadDictionary_mutex.unlock();
             } 
             break;
             case LIST_USERS:
@@ -127,6 +134,7 @@ void handleClient(int client_fd) {
                 ListUsersMessage listUsersMessage;
                 listUsersMessage.parse(client_fd);
 
+                std::cout << "Getting users for '" << clientUsername << "'" << std::endl;
                 // Get users with prefix
                 userTrie_mutex.lock();
                 std::vector<std::string> usernames = userTrie.returnUsersWithPrefix(listUsersMessage.prefix);
@@ -148,6 +156,7 @@ void handleClient(int client_fd) {
                 bool userExists = userTrie.userExists(clientUsername);
 
                 if (userExists) {
+                    std::cout << "Adding message to storage for '" << clientUsername << "'" << std::endl;
                     // Add message to messages dictionary
                     UserPair userPair(clientUsername, sendMessageMessage.recipientUsername);
                     messagesDictionary[userPair].addMessage(clientUsername, sendMessageMessage.recipientUsername, sendMessageMessage.messageContent);
@@ -165,6 +174,7 @@ void handleClient(int client_fd) {
                     socketDictionary_mutex.unlock();
 
                 } else {
+                    std::cout << "Tried to send a message to a user that doesn't exist '" << clientUsername << "'" << std::endl;
                      queryResult = 1; // User doesn't exist
                 }
 
@@ -175,6 +185,7 @@ void handleClient(int client_fd) {
             break;
             case QUERY_NOTIFICATIONS:
             {
+                std::cout << "Getting notifications for '" << clientUsername << "'" << std::endl;
                 // Retrieve notifications from the conversations dictionary
                 std::vector<std::pair<char [g_UsernameLimit], char> > notifications = conversationsDictionary.getNotifications(clientUsername);
 
@@ -189,6 +200,8 @@ void handleClient(int client_fd) {
                 // Parse message
                 QueryMessagesMessage queryMessagesMessage;
                 queryMessagesMessage.parse(client_fd);
+
+                std::cout << "Getting messages between '" << clientUsername << "' and '"<< queryMessagesMessage.username << "'" << std::endl;
 
                 // Get stored messages depending on if the client has the conversation open
                 UserPair userPair(queryMessagesMessage.username, clientUsername);
@@ -213,14 +226,19 @@ void handleClient(int client_fd) {
             }
             break;
             case DELETE_ACCOUNT:
-            {
+            {   
+                std::cout << "Deleting account of '" << clientUsername << "'" << std::endl;
                 // Flag user account as deleted in trie
                 userTrie_mutex.lock();
                 userTrie.deleteUser(clientUsername);
                 userTrie_mutex.unlock();
 
                 // Closes thread
+                socketDictionary_mutex.lock();
+                threadDictionary_mutex.lock();
                 cleanup(clientUsername, thread_id, client_fd);
+                socketDictionary_mutex.unlock();
+                threadDictionary_mutex.unlock();
  
             }
             break;

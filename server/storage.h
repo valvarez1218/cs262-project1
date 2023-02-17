@@ -252,8 +252,7 @@ struct UserTrie {
                 nodeIdxPair.second = 0;
             }
             else if (currNode->isTerminal) {
-                std::string errorMsg = "Username '" + username + "' has already been taken.";
-                throw std::invalid_argument(errorMsg);
+                std::cout << "Username '" << username << "' has already been taken." << std::endl;
             }
 
             for (int idx = nodeIdxPair.second+1; idx < username.size(); idx++) {
@@ -358,18 +357,13 @@ std::unordered_map<std::thread::id, std::vector<NewMessageMessage>> queuedOperat
 
 
 // Cleaning up session-related storage structures
-void cleanup(char clientUsername [g_UsernameLimit], std::thread::id thread_id, int client_fd) {
-    socketDictionary_mutex.lock();
-    threadDictionary_mutex.lock();
-
+void cleanup(std::string clientUsername, std::thread::id thread_id, int client_fd) {
+    std::cout << "Cleaning up data structures for '" << clientUsername << "'" << std::endl;
     threadDictionary.erase(thread_id);
     queuedOperationsDictionary.erase(thread_id);
     socketDictionary.erase(clientUsername);
     close(client_fd);
     pthread_cancel(threadDictionary[thread_id]);
-
-    threadDictionary_mutex.unlock();
-    socketDictionary_mutex.unlock();
 }
 // Initialize Trie
 // Add user
