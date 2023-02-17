@@ -403,9 +403,9 @@ struct DeleteAccountMessage {
 
 
 struct MessagesSeenMessage {
-    opCode operation;
     int messagesSeen;
     int startingIndex;
+    opCode operation;
     // char otherUsername[g_UsernameLimit];
 
     MessagesSeenMessage() {
@@ -462,8 +462,8 @@ struct NewMessageMessage {
 
 // TODO
 struct CreateAccountReply {
-    opCode operation;
     int queryStatus;
+    opCode operation;
 
     CreateAccountReply() {
     }
@@ -477,9 +477,9 @@ struct CreateAccountReply {
 
 // TODO
 struct LoginReply {
-    opCode operation;
     // 0 = success, 1 = failure (username or password incorrect)
     int queryStatus;
+    opCode operation;
 
     LoginReply() {        
     }
@@ -503,8 +503,8 @@ struct Username {
 
 
 struct ListUsersReply {
-    opCode operation;
     int numberOfUsers;
+    opCode operation;
     std::vector<Username> usernames;
 
     // Default Constructor, initializes nothing
@@ -557,8 +557,8 @@ struct SendMessageReply {
 
 
 struct QueryNotificationReply {
-    opCode operation;
     int numberOfUsers;
+    opCode operation;
     std::vector<std::pair<char [g_UsernameLimit], char> > notifications;
 
 
@@ -589,6 +589,7 @@ struct QueryNotificationReply {
         if (valread == -1) {
             throw std::runtime_error("Error reading number of users from socket.");
         }
+        std::cout << std::to_string(numberOfUsers) << " Notifications" << std::endl;
 
         for (int notificationsCounter = 0; notificationsCounter < numberOfUsers; notificationsCounter++) {
             std::pair<char[g_UsernameLimit], char> userNotesPair;
@@ -596,8 +597,9 @@ struct QueryNotificationReply {
             if (valread == -1) {
                 throw std::runtime_error("Error reading notification from socket.");
             }
-            std::cout << userNotesPair.first << ": " << std::to_string(userNotesPair.second) << " new message(s)" << std::endl;
+            std::cout << std::string(userNotesPair.first) << ": " << std::to_string(userNotesPair.second) << " new message(s)" << std::endl;
         }
+        std::cout << "Those are all your notifications!" << std::endl;
     }
 };
 
@@ -609,9 +611,9 @@ struct ReturnMessage {
 
 // Holds messages
 struct QueryMessagesReply {
-    opCode operation;
     int numberOfMessages;
     int firstMessageIndex;
+    opCode operation;
     std::vector<ReturnMessage> messageList;
 
     // Default constructor, initializes nothing
