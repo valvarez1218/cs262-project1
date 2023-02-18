@@ -9,7 +9,7 @@ const std::unordered_map<std::string, opCode> operationMap {
     {"create_account",              CREATE_ACCOUNT},
     {"login",                       LOGIN},
     {"logout",                      LOGOUT},
-    {"list",                        LIST_USERS},
+    {"list_users",                  LIST_USERS},
     {"send_message",                SEND_MESSAGE},
     {"query_notifications",         QUERY_NOTIFICATIONS},
     {"query_messages",              QUERY_MESSAGES},
