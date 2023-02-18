@@ -265,17 +265,21 @@ void handleClient(int client_fd) {
                 // Retrieve notifications from the conversations dictionary
                 std::vector<std::pair<char [g_UsernameLimit], char> > notifications = conversationsDictionary.getNotifications(clientUsername);
 
-                for (int i = 0; i < notifications.size(); i++) {
-                    std::cout << "Username: " << notifications[i].first << ", " << std::to_string(notifications[i].second) << " notifications" << std::endl;
-                }
+                // for (int i = 0; i < notifications.size(); i++) {
+                //     std::cout << "Username: " << notifications[i].first << ", " << std::to_string(notifications[i].second) << " notifications" << std::endl;
+                // }
 
                 // Construct and send a reply
                 QueryNotificationReply queryNotificationsReply(notifications.size());
                 send(client_fd, &queryNotificationsReply, sizeof(queryNotificationsReply), 0);
+                
+                for (int i = 0; i < notifications.size(); i++) {
+                    std::cout << "Username: " << notifications[i].first << ", " << std::to_string(notifications[i].second) << " notifications" << std::endl;
+                    send(client_fd, &notifications[i], sizeof(std::pair<char[g_UsernameLimit], char>),0);
+                }
+                // int valsent = send(client_fd, notifications.data(), notifications.size()*sizeof(std::pair<char [g_UsernameLimit], char>),0);
 
-                int valsent = send(client_fd, notifications.data(), notifications.size()*sizeof(std::pair<char [g_UsernameLimit], char>),0);
-
-                std::cout << valsent << " bytes sent" << std::endl;
+                // std::cout << valsent << " bytes sent" << std::endl;
 
             }
             break;
