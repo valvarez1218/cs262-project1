@@ -227,7 +227,7 @@ void handleClient(int client_fd) {
                 sendMessageMessage.parse(client_fd);
                 int queryResult = 0; // Message sent!
 
-                bool userExists = userTrie.userExists(clientUsername);
+                bool userExists = userTrie.userExists(sendMessageMessage.recipientUsername);
 
                 if (userExists) {
                     std::cout << "Adding message to storage from '" << clientUsername << "' to '" << sendMessageMessage.recipientUsername << "'" << std::endl;
@@ -309,7 +309,13 @@ void handleClient(int client_fd) {
                 // Construct and send a reply
                 QueryMessagesReply queryMessagesReply(returnVal.messageList.size(), returnVal.firstMessageIndex);
                 send(client_fd, &queryMessagesReply, sizeof(queryMessagesReply), 0);
-                send(client_fd, returnVal.messageList.data(), returnVal.messageList.size() * sizeof(ReturnMessage), 0);
+
+                
+
+                for (int i = 0; i < returnVal.messageList.size(); i++) {
+                    send(client_fd, &returnVal.messageList[i], sizeof(ReturnMessage), 0);
+                }
+                // send(client_fd, returnVal.messageList.data(), returnVal.messageList.size() * sizeof(ReturnMessage), 0);
                 
 
             }

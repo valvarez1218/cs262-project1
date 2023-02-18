@@ -260,6 +260,7 @@ TEST(UsernameTrieStorage, UserExists) {
   usernameTrie.addUsername(user4, "password4");
 
   EXPECT_EQ(usernameTrie.userExists("Victor"), true);
+  EXPECT_EQ(usernameTrie.userExists("Vic"), false);
   EXPECT_EQ(usernameTrie.userExists("Carolyn"), true);
   EXPECT_EQ(usernameTrie.userExists("Taco"), false);
 }
