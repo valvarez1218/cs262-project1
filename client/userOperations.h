@@ -161,7 +161,8 @@ void deleteAccount(int socket_fd, DeleteAccountMessage &delete_account_message) 
 void readSocket() {
     opCode operation;
 
-    int valread = recv(server_socket, &operation, sizeof(opCode), MSG_DONTWAIT);
+    // int valread = recv(server_socket, &operation, sizeof(opCode), MSG_DONTWAIT);
+    int valread = read(server_socket, &operation, sizeof(opCode));
     std::cout << "Read " << std::to_string(valread) << " bytes. Value is " << std::to_string(operation) << std::endl;
 
     switch (operation) {

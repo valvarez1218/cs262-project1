@@ -481,7 +481,7 @@ struct LoginReply {
     opCode operation;
     char queryStatus;
 
-    LoginReply() {        
+    LoginReply() {
     }
 
     LoginReply(int c_queryStatus) {
