@@ -50,7 +50,7 @@ void login(int socket_fd, LoginMessage &login_message) {
     if (serverReply.queryStatus == 1) {
         throw std::runtime_error("Incorrect username or password.");
     }
-
+    std::cout << "Welcome " << login_message.userName << "!" << std::endl;
     USER_LOGGED_IN = true;
 }
 

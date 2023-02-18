@@ -649,6 +649,7 @@ struct QueryMessagesReply {
         for (int numMessagesRead = 0; numMessagesRead < numberOfMessages; numMessagesRead++) {
             ReturnMessage msg;
             valread = read(socket_fd, &msg, sizeof(ReturnMessage));
+            std::cout << "Read ReturnMessages read " << std::to_string(valread) << " bytes" << std::endl;
             if (valread == -1) {
                 std::cout << "Error reading message from socket." << std::endl;
                 return numMessagesRead;
