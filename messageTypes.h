@@ -530,7 +530,7 @@ struct ListUsersReply {
         for (int userCount = 0; userCount < numberOfUsers; userCount++) {
             char user[g_UsernameLimit];
             std::cout << "Going to read username " << std::to_string(userCount) << std::endl;
-            valread = read(socket_fd, &user, g_UsernameLimit);
+            valread = recv(socket_fd, &user, g_UsernameLimit,0);
             std::cout << "Read " << std::to_string(valread) << std::endl;
             if (valread == -1) {
                 throw std::runtime_error("Error reading username from socket.");
@@ -591,7 +591,7 @@ struct QueryNotificationReply {
 
         for (int notificationsCounter = 0; notificationsCounter < numberOfUsers; notificationsCounter++) {
             std::pair<char[g_UsernameLimit], char> userNotesPair;
-            valread = read(socket_fd, &userNotesPair, sizeof(userNotesPair));
+            valread = recv(socket_fd, &userNotesPair, sizeof(userNotesPair),0);
             if (valread == -1) {
                 throw std::runtime_error("Error reading notification from socket.");
             }

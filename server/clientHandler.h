@@ -20,11 +20,11 @@ void handleClient(int client_fd) {
 
         std::cout << "beginning of loop" << std::endl;
         
-        for (auto const& entry : queuedOperationsDictionary) {
-            std::cout << "Entry for socket_fd: " << std::to_string(client_fd) << std::endl;
+        for (auto const& entry : forceLogoutDictionary) {
+            std::cout << "Entry for logoutdict: " << std::to_string(entry.first) << std::endl;
         }
 
-        // Checks for forced exit 
+        // Checks for forced exit TODO: MAKE WORK
         if (forceLogoutDictionary.find(client_fd) != forceLogoutDictionary.end()) {
             std::cout << clientUsername << " forced to exit" << std::endl;
             forceLogoutDictionary.erase(client_fd);
@@ -48,6 +48,15 @@ void handleClient(int client_fd) {
         
         opCode operation;
         valread = read(client_fd, &operation, sizeof(opCode));
+
+        // Cleans up if the client is disconnected
+        if (valread == 0) {
+            std::cout << "Client disconnected" << std::endl;
+            cleanup(clientUsername, thread_id, client_fd);
+            strcpy(threadExitReturnVal, "Thread exited");
+            pthread_exit(threadExitReturnVal);
+        }
+
         std::cout << "We've read an operation code!" << std::to_string(operation) << std::endl;
 
         switch (operation) {
@@ -126,7 +135,7 @@ void handleClient(int client_fd) {
                         send(socketDictionary[username].second, &forceLogOutReply, sizeof(forceLogOutReply), 0);
                         
                         // Kill thread handling original user session
-                        cleanup(username, socketDictionary[username].first, socketDictionary[username].second);
+                        // cleanup(username, socketDictionary[username].first, socketDictionary[username].second);
                         socketDictionary_mutex.unlock();
                         threadDictionary_mutex.unlock();
 
