@@ -301,7 +301,7 @@ void handleClient(int client_fd) {
                 currentConversation.messagesSentEndIndex = returnVal.lastMessageIndex;
 
                 // Construct and send a reply
-                QueryMessagesReply queryMessagesReply(returnVal.messageList.size(), returnVal.firstMessageIndex, returnVal.messageList);
+                QueryMessagesReply queryMessagesReply(returnVal.messageList.size(), returnVal.firstMessageIndex);
                 send(client_fd, &queryMessagesReply, sizeof(queryMessagesReply), 0);
                 
 

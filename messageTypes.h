@@ -630,12 +630,12 @@ struct QueryMessagesReply {
             throw std::runtime_error("Error reading operation from socket.");
         }
 
-        valread = read(socket_fd, &numberOfMessages, sizeof(int));
+        valread = read(socket_fd, &numberOfMessages, sizeof(char));
         if (valread == -1) {
             throw std::runtime_error("Error reading number of messages from socket.");
         }
 
-        valread = read(socket_fd, &firstMessageIndex, sizeof(int));
+        valread = read(socket_fd, &firstMessageIndex, sizeof(char));
         if (valread == -1) {
             throw std::runtime_error("Error reading first message index from socket.");
         }
