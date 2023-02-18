@@ -223,6 +223,7 @@ TEST(UsernameTrieStorage, QueryingUsernames) {
   EXPECT_EQ(usernameQuery(usernameTrie, "B"), std::vector<std::string> {});
   EXPECT_EQ(usernameQuery(usernameTrie, "V"), (std::vector<std::string> {"Vicky", "Victor"}));
   EXPECT_EQ(usernameQuery(usernameTrie, "C"), (std::vector<std::string> {"Carlos", "Carolyn"}));
+  EXPECT_EQ(usernameQuery(usernameTrie, ""), (std::vector<std::string> {"Vicky", "Victor", "Carlos", "Carolyn"}));
 }
 
 TEST(UsernameTrieStorage, PasswordStorage) {
@@ -261,6 +262,25 @@ TEST(UsernameTrieStorage, UserExists) {
   EXPECT_EQ(usernameTrie.userExists("Victor"), true);
   EXPECT_EQ(usernameTrie.userExists("Carolyn"), true);
   EXPECT_EQ(usernameTrie.userExists("Taco"), false);
+}
+
+TEST(UsernameTrieStorage, DeleteUser) {
+  UserTrie usernameTrie;
+  std::string user1 = "Victor";
+  std::string user2 = "Carolyn";
+  std::string user3 = "Carlos";
+  std::string user4 = "Vicky";
+
+  usernameTrie.addUsername(user1, "password1");
+  usernameTrie.addUsername(user2, "password2");
+  usernameTrie.addUsername(user3, "password3");
+  usernameTrie.addUsername(user4, "password4");
+
+  usernameTrie.deleteUser("Victor");
+  usernameTrie.deleteUser("Carlos");
+
+  EXPECT_EQ(usernameTrie.userExists("Victor"), false);
+  EXPECT_EQ(usernameTrie.userExists("Carlos"), false);
 }
 
 int main(int argc, char* argv[]) {

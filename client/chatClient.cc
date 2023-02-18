@@ -5,10 +5,6 @@
 #include <iomanip>
 #include <cstring>
 
-
-// Boolean determining whether program is still running
-bool g_ProgramRunning = true;
-
 int main (void) {
 
     if (!establishConnection()) {

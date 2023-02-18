@@ -20,6 +20,7 @@
 
 // Server->Client Messages
 #define NEW_MESSAGE                 10
+#define FORCE_LOG_OUT               20
 
 // Server->Client Replies 
 #define CREATE_ACCOUNT_REPLY        11
@@ -28,17 +29,15 @@
 #define SEND_MESSAGE_REPLY          14
 #define QUERY_NOTIFICATIONS_REPLY   15
 #define QUERY_MESSAGES_REPLY        16
-#define DELETE_ACCOUNT_REPLY        17 
 #define MESSAGES_SEEN_REPLY         18
-#define NEW_MESSAGE_REPLY           19
-#define FORCE_LOG_OUT               20
+// #define NEW_MESSAGE_REPLY           19
 
 // This is a value corresponding to the supported operations
 typedef char opCode;
 
 const int NotImplementedException = 505;
 
-const size_t g_UsernameLimit = 31;
+const size_t g_UsernameLimit = 32;
 const size_t g_PasswordLimit = 31;
 const size_t g_MessageLimit = 1001;
 const size_t g_MessageQueryLimit = 20;
@@ -316,7 +315,7 @@ struct QueryNotificationsMessage {
         if (inputs.size() != 0) {
             throw std::invalid_argument("query_notifications takes 0 inputs.");
         }
-    }    
+    }
 };
 
 
@@ -403,9 +402,9 @@ struct DeleteAccountMessage {
 
 
 struct MessagesSeenMessage {
-    int messagesSeen;
-    int startingIndex;
     opCode operation;
+    char messagesSeen;
+    char startingIndex;
     // char otherUsername[g_UsernameLimit];
 
     MessagesSeenMessage() {
@@ -462,8 +461,8 @@ struct NewMessageMessage {
 
 // TODO
 struct CreateAccountReply {
-    int queryStatus;
     opCode operation;
+    char queryStatus;
 
     CreateAccountReply() {
     }
@@ -478,8 +477,8 @@ struct CreateAccountReply {
 // TODO
 struct LoginReply {
     // 0 = success, 1 = failure (username or password incorrect)
-    int queryStatus;
     opCode operation;
+    char queryStatus;
 
     LoginReply() {        
     }
@@ -502,22 +501,18 @@ struct Username {
 };
 
 
+
 struct ListUsersReply {
-    int numberOfUsers;
     opCode operation;
-    std::vector<Username> usernames;
+    char numberOfUsers;
+    // std::vector<Username> usernames;
 
     // Default Constructor, initializes nothing
     ListUsersReply(){}
 
-    ListUsersReply(int c_numberOfUsers, std::vector<std::string> c_usernames) {
+    ListUsersReply(int c_numberOfUsers) {
         operation = LIST_USERS_REPLY;
         numberOfUsers = c_numberOfUsers;
-
-        for (int i = 0; i < c_usernames.size(); i++) {
-            Username newUsername(c_usernames[i]);
-            usernames.push_back(newUsername);
-        }
     }
 
     void readUsernames(int socket_fd) {
@@ -531,13 +526,16 @@ struct ListUsersReply {
             throw std::runtime_error("Error reading number of users from socket.");
         }
 
+        std::cout << "Number of users read: " << std::to_string(numberOfUsers) << std::endl;
         for (int userCount = 0; userCount < numberOfUsers; userCount++) {
-            Username user;
-            valread = read(socket_fd, &user, sizeof(Username));
+            char user[g_UsernameLimit];
+            std::cout << "Going to read username " << std::to_string(userCount) << std::endl;
+            valread = read(socket_fd, &user, g_UsernameLimit);
+            std::cout << "Read " << std::to_string(valread) << std::endl;
             if (valread == -1) {
                 throw std::runtime_error("Error reading username from socket.");
             }
-            std::cout << user.username << std::endl;
+            std::cout << user << std::endl;
         }
     }
 };
@@ -547,7 +545,7 @@ struct ListUsersReply {
 struct SendMessageReply {
     opCode operation;
     // 0 = success, 1 = user doesn't exist
-    int queryStatus;
+    char queryStatus;
 
     SendMessageReply(int c_queryStatus) {
         operation = SEND_MESSAGE_REPLY;
@@ -557,8 +555,8 @@ struct SendMessageReply {
 
 
 struct QueryNotificationReply {
-    int numberOfUsers;
     opCode operation;
+    char numberOfUsers;
     std::vector<std::pair<char [g_UsernameLimit], char> > notifications;
 
 
@@ -611,9 +609,9 @@ struct ReturnMessage {
 
 // Holds messages
 struct QueryMessagesReply {
-    int numberOfMessages;
-    int firstMessageIndex;
     opCode operation;
+    char numberOfMessages;
+    char firstMessageIndex;
     std::vector<ReturnMessage> messageList;
 
     // Default constructor, initializes nothing
@@ -656,15 +654,6 @@ struct QueryMessagesReply {
     }
 };
 
-
-// TODO
-struct DeleteAccountReply {
-    opCode operation;
-
-    DeleteAccountReply() {
-        operation = DELETE_ACCOUNT_REPLY;
-    }
-};
 
 struct ForceLogOutReply {
     opCode operation;

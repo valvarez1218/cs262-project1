@@ -3,6 +3,8 @@
 
 // Boolean determining whether the user has logged in
 bool USER_LOGGED_IN = false;
+// Boolean determining whether program is still running
+bool g_ProgramRunning = true;
 
 std::string loggedInErrorMsg(std::string operationAttempted) {
     return "User must be logged in to perform " + operationAttempted;
@@ -62,6 +64,9 @@ void logout(int socket_fd, LogoutMessage &logout_message) {
     }
 
     send(socket_fd, &logout_message, sizeof(LogoutMessage), 0);
+    USER_LOGGED_IN = false;
+    g_ProgramRunning = false;
+    std::cout << "Logged out, goodbye!" << std::endl;
 }
 
 
@@ -89,6 +94,8 @@ void sendMessage(int socket_fd, SendMessageMessage &send_message_message) {
     }
 
     send(socket_fd, &send_message_message, sizeof(SendMessageMessage), 0);
+
+    // TODO: handle SendMessageReply
 }
 
 
@@ -97,7 +104,7 @@ void queryNotifications(int socket_fd, QueryNotificationsMessage &query_notifica
         throw std::runtime_error(loggedInErrorMsg("query_notifications"));
     }
 
-    send(socket_fd, &query_notification_message, sizeof(QueryMessagesMessage), 0);
+    int valsent = send(socket_fd, &query_notification_message, sizeof(QueryNotificationsMessage), 0);
 
     QueryNotificationReply serverReply;
     serverReply.readNotifications(socket_fd);
@@ -132,6 +139,9 @@ void deleteAccount(int socket_fd, DeleteAccountMessage &delete_account_message) 
     }
 
     send(socket_fd, &delete_account_message, sizeof(DeleteAccountMessage), 0);
+    USER_LOGGED_IN = false;
+    g_ProgramRunning = false;
+    std::cout << "Account deleted, goodbye!" << std::endl;
 }
 
 
@@ -161,6 +171,7 @@ void readSocket() {
             {
                 std::cout << "Log in on another device detected. Session ended." << std::endl;
                 USER_LOGGED_IN = false;
+                g_ProgramRunning = false;
             }
             break;
     }

@@ -270,6 +270,13 @@ struct UserTrie {
 
         // Returns a vector of users with given prefix, if none found returns a runtime exception
         std::vector<std::string> returnUsersWithPrefix(std::string usernamePrefix) {
+            if (usernamePrefix.size() == 0) {
+                // Perform DFS starting at deepest node
+                std::vector<std::string> usersFound;
+                performDFS(usernamePrefix, nullptr, usersFound);
+                std::cout << "Got usernames" << std::endl;
+                return usersFound;
+            }
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(usernamePrefix);
             CharNode* deepestNode = nodeIdxPair.first;
             int index = nodeIdxPair.second;
@@ -309,6 +316,13 @@ struct UserTrie {
 
         // Given a substring and current node, append to vector if node ends a username
         void performDFS(std::string substring, CharNode* currNode, std::vector<std::string> &usersFound) {
+            if (substring.size() == 0 || currNode == nullptr) {
+                for (auto it = roots.begin(); it != roots.end(); ++it) {
+                    std::string newSubstr = substring + (*it).first;
+                    performDFS(newSubstr, (*it).second, usersFound);
+                }
+                return;
+            }
             if (currNode->isTerminal) {
                 usersFound.push_back(substring);
             }
@@ -340,7 +354,7 @@ struct UserTrie {
 
         void deleteUser(std::string username) {
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
-            if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size() || !nodeIdxPair.first->isTerminal) {
+            if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size()-1 || !nodeIdxPair.first->isTerminal) {
                 std::string errorMsg = "User '" + username + "' not found.";
                 throw std::runtime_error(errorMsg);
             }
@@ -355,18 +369,20 @@ UserTrie userTrie;
 
 // Global storage for new messsage operations
 std::mutex queuedOperations_mutex;
-std::unordered_map<std::thread::id, std::vector<NewMessageMessage>> queuedOperationsDictionary;
+std::unordered_map<int, std::vector<NewMessageMessage>> queuedOperationsDictionary;
+std::unordered_map<int, bool> forceLogoutDictionary;
 
 
 // Cleaning up session-related storage structures
 void cleanup(std::string clientUsername, std::thread::id thread_id, int client_fd) {
-    std::cout << "Cleaning up data structures for '" << clientUsername << "'" << std::endl;
+    std::cout << "killing thread :" << thread_id << std::endl;
     threadDictionary.erase(thread_id);
-    queuedOperationsDictionary.erase(thread_id);
+    queuedOperationsDictionary.erase(client_fd);
     socketDictionary.erase(clientUsername);
     close(client_fd);
-    pthread_cancel(threadDictionary[thread_id]);
 }
+
+char threadExitReturnVal [50];
 // Initialize Trie
 // Add user
 // Find all users associated with a substring
