@@ -148,12 +148,9 @@ void deleteAccount(int socket_fd, DeleteAccountMessage &delete_account_message) 
 // handle server messages
 void readSocket() {
     opCode operation;
-    timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 400;
-    setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
-    int valread = read(server_socket, &operation, sizeof(opCode));
+    int valread = recv(server_socket, &operation, sizeof(opCode), MSG_DONTWAIT);
+    std::cout << "Read " << std::to_string(valread) << " bytes. Value is " << std::to_string(operation) << std::endl;
 
     switch (operation) {
         case NEW_MESSAGE:
@@ -174,6 +171,6 @@ void readSocket() {
             }
             break;
     }
-     tv.tv_usec = 0;
-    setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+    //  tv.tv_usec = 0;
+    // setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 }
