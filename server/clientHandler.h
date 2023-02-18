@@ -250,7 +250,7 @@ void handleClient(int client_fd) {
                     socketDictionary_mutex.unlock();
 
                 } else {
-                    std::cout << "Tried to send a message to a user that doesn't exist '" << clientUsername << "'" << std::endl;
+                    std::cout << "Tried to send a message to a user that doesn't exist '" << sendMessageMessage.recipientUsername << "'" << std::endl;
                      queryResult = 1; // User doesn't exist
                 }
 
@@ -275,7 +275,8 @@ void handleClient(int client_fd) {
                 
                 for (int i = 0; i < notifications.size(); i++) {
                     std::cout << "Username: " << notifications[i].first << ", " << std::to_string(notifications[i].second) << " notifications" << std::endl;
-                    send(client_fd, &notifications[i], sizeof(std::pair<char[g_UsernameLimit], char>),0);
+                    int valsent = send(client_fd, &notifications[i], sizeof(std::pair<char[g_UsernameLimit], char>),0);
+                    std::cout << "Sent " << std::to_string(valsent) << std::endl;
                 }
                 // int valsent = send(client_fd, notifications.data(), notifications.size()*sizeof(std::pair<char [g_UsernameLimit], char>),0);
 
@@ -317,7 +318,8 @@ void handleClient(int client_fd) {
                 
 
                 for (int i = 0; i < returnVal.messageList.size(); i++) {
-                    send(client_fd, &returnVal.messageList[i], sizeof(ReturnMessage), 0);
+                    int valsent = send(client_fd, &returnVal.messageList[i], sizeof(ReturnMessage), 0);
+                    std::cout << "QueryMessage sent " << std::to_string(valsent) << std::endl;
                 }
                 // send(client_fd, returnVal.messageList.data(), returnVal.messageList.size() * sizeof(ReturnMessage), 0);
                 

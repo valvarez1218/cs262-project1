@@ -453,6 +453,7 @@ struct NewMessageMessage {
         if (valread == -1) {
             throw std::runtime_error("Error reading new message from socket.");
         }
+        std::cout << "New message from " << senderUsername << "!" << std::endl;
         // valread = read(socket_fd, &messageContent[0], g_MessageLimit);
         // return valread == -1 ? false : true;
     }
