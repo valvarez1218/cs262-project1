@@ -418,11 +418,11 @@ struct MessagesSeenMessage {
     }
 
     bool parse (int socket_fd) {
-        ssize_t valread = read(socket_fd, &messagesSeen, sizeof(u_int));
+        ssize_t valread = read(socket_fd, &messagesSeen, sizeof(char));
         if (valread == -1) {
             return false;
         }
-        valread = read(socket_fd, &startingIndex, sizeof(u_int));
+        valread = read(socket_fd, &startingIndex, sizeof(char));
         return valread == -1 ? false : true;
 
         // valread = read(socket_fd, &otherUsername[0], g_UsernameLimit);
@@ -521,7 +521,7 @@ struct ListUsersReply {
             throw std::runtime_error("Error reading operation code from socket.");
         }
 
-        valread = read(socket_fd, &numberOfUsers, sizeof(int));
+        valread = read(socket_fd, &numberOfUsers, sizeof(char));
         if (valread == -1) {
             throw std::runtime_error("Error reading number of users from socket.");
         }
@@ -583,15 +583,16 @@ struct QueryNotificationReply {
             throw std::runtime_error("Error reading operation from socket.");
         }
 
-        valread = read(socket_fd, &numberOfUsers, sizeof(int));
+        valread = read(socket_fd, &numberOfUsers, sizeof(char));
         if (valread == -1) {
             throw std::runtime_error("Error reading number of users from socket.");
         }
-        std::cout << std::to_string(numberOfUsers) << " Notifications" << std::endl;
+        std::cout << std::to_string(numberOfUsers) << " Notification(s)" << std::endl;
 
         for (int notificationsCounter = 0; notificationsCounter < numberOfUsers; notificationsCounter++) {
             std::pair<char[g_UsernameLimit], char> userNotesPair;
             valread = recv(socket_fd, &userNotesPair, sizeof(userNotesPair),0);
+            std::cout << "read " << std::to_string(valread) << std::endl;
             if (valread == -1) {
                 throw std::runtime_error("Error reading notification from socket.");
             }

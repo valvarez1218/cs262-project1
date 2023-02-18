@@ -273,7 +273,9 @@ void handleClient(int client_fd) {
                 QueryNotificationReply queryNotificationsReply(notifications.size());
                 send(client_fd, &queryNotificationsReply, sizeof(queryNotificationsReply), 0);
 
-                send(client_fd, notifications.data(), notifications.size()*sizeof(std::pair<char [g_UsernameLimit], char>),0);
+                int valsent = send(client_fd, notifications.data(), notifications.size()*sizeof(std::pair<char [g_UsernameLimit], char>),0);
+
+                std::cout << valsent << " bytes sent" << std::endl;
 
             }
             break;
@@ -303,6 +305,7 @@ void handleClient(int client_fd) {
                 // Construct and send a reply
                 QueryMessagesReply queryMessagesReply(returnVal.messageList.size(), returnVal.firstMessageIndex);
                 send(client_fd, &queryMessagesReply, sizeof(queryMessagesReply), 0);
+                send(client_fd, returnVal.messageList.data(), returnVal.messageList.size() * sizeof(ReturnMessage), 0);
                 
 
             }
