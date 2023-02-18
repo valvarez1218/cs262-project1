@@ -557,22 +557,22 @@ struct SendMessageReply {
 struct QueryNotificationReply {
     opCode operation;
     char numberOfUsers;
-    std::vector<std::pair<char [g_UsernameLimit], char> > notifications;
+    // std::vector<std::pair<char [g_UsernameLimit], char> > notifications;
 
 
     // Default constructor, initializes nothing
     QueryNotificationReply(){};
 
-    QueryNotificationReply(int users, std::vector<std::pair<char [g_UsernameLimit], char> > notificationsList) {
+    QueryNotificationReply(int users) {
         numberOfUsers = users;
 
-        for (int i=0; i < notificationsList.size(); i++) {
-            std::pair<char [g_UsernameLimit], char> newVectorElement;
-            strcpy(newVectorElement.first, notificationsList[0].first);
-            newVectorElement.second = notificationsList[0].second;
+        // for (int i=0; i < notificationsList.size(); i++) {
+        //     std::pair<char [g_UsernameLimit], char> newVectorElement;
+        //     strcpy(newVectorElement.first, notificationsList[0].first);
+        //     newVectorElement.second = notificationsList[0].second;
 
-            notifications.push_back(newVectorElement);
-        }
+        //     notifications.push_back(newVectorElement);
+        // }
         operation = QUERY_NOTIFICATIONS_REPLY;
     }
 
@@ -612,16 +612,16 @@ struct QueryMessagesReply {
     opCode operation;
     char numberOfMessages;
     char firstMessageIndex;
-    std::vector<ReturnMessage> messageList;
+    // std::vector<ReturnMessage> messageList;
 
     // Default constructor, initializes nothing
     QueryMessagesReply(){}
 
-    QueryMessagesReply(int c_numberOfMessages, int c_firstMessageIndex, std::vector<ReturnMessage> c_messageList) {
+    QueryMessagesReply(int c_numberOfMessages, int c_firstMessageIndex) {
         operation = QUERY_MESSAGES_REPLY;
         numberOfMessages = c_numberOfMessages;
         firstMessageIndex = c_firstMessageIndex;
-        messageList = c_messageList;
+        // messageList = c_messageList;
     }
 
     int readMessages(int socket_fd) {

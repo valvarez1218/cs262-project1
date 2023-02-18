@@ -270,8 +270,10 @@ void handleClient(int client_fd) {
                 }
 
                 // Construct and send a reply
-                QueryNotificationReply queryNotificationsReply(notifications.size(), notifications);
+                QueryNotificationReply queryNotificationsReply(notifications.size());
                 send(client_fd, &queryNotificationsReply, sizeof(queryNotificationsReply), 0);
+
+                send(client_fd, notifications.data(), notifications.size()*sizeof(std::pair<char [g_UsernameLimit], char>),0);
 
             }
             break;
