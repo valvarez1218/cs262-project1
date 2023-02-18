@@ -302,6 +302,10 @@ void handleClient(int client_fd) {
                 currentConversation.messagesSentStartIndex = returnVal.firstMessageIndex;
                 currentConversation.messagesSentEndIndex = returnVal.lastMessageIndex;
 
+                for (int i = 0; i < returnVal.messageList.size(); i++) {
+                    std::cout << returnVal.messageList[i].senderUsername<< " : " << returnVal.messageList[i].messageContent << std::endl;
+                }
+
                 // Construct and send a reply
                 QueryMessagesReply queryMessagesReply(returnVal.messageList.size(), returnVal.firstMessageIndex);
                 send(client_fd, &queryMessagesReply, sizeof(queryMessagesReply), 0);

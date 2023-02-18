@@ -547,6 +547,11 @@ struct SendMessageReply {
     // 0 = success, 1 = user doesn't exist
     char queryStatus;
 
+    // Default constructor, initializes nothing
+    SendMessageReply(){
+        operation = SEND_MESSAGE_REPLY;
+    }
+
     SendMessageReply(int c_queryStatus) {
         operation = SEND_MESSAGE_REPLY;
         queryStatus = c_queryStatus;

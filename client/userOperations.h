@@ -96,6 +96,18 @@ void sendMessage(int socket_fd, SendMessageMessage &send_message_message) {
     send(socket_fd, &send_message_message, sizeof(SendMessageMessage), 0);
 
     // TODO: handle SendMessageReply
+    SendMessageReply serverReply;
+    int valread = read(socket_fd, &serverReply, sizeof(SendMessageReply));
+    if (valread == -1) {
+        throw std::runtime_error("Error reading SendMessageReply from server.");
+    }
+    if (serverReply.queryStatus == 1) {
+        std::string errorMsg = "User " + std::string(send_message_message.recipientUsername) + " was not found.";
+        throw std::runtime_error(errorMsg);
+    } else {
+        std::cout << "Message sent to " << std::string(send_message_message.recipientUsername) << std::endl;
+    }
+
 }
 
 
