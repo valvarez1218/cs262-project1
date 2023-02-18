@@ -154,7 +154,6 @@ void readSocket() {
     setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
     int valread = read(server_socket, &operation, sizeof(opCode));
-    std::cout << "We're in read socket. We read " << std::to_string(operation) << std::endl;
 
     switch (operation) {
         case NEW_MESSAGE:
@@ -175,7 +174,6 @@ void readSocket() {
             }
             break;
     }
-    std::cout << "We're leaving read socket" << std::endl;
-    tv.tv_usec = 0;
+     tv.tv_usec = 0;
     setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 }

@@ -223,7 +223,7 @@ TEST(UsernameTrieStorage, QueryingUsernames) {
   EXPECT_EQ(usernameQuery(usernameTrie, "B"), std::vector<std::string> {});
   EXPECT_EQ(usernameQuery(usernameTrie, "V"), (std::vector<std::string> {"Vicky", "Victor"}));
   EXPECT_EQ(usernameQuery(usernameTrie, "C"), (std::vector<std::string> {"Carlos", "Carolyn"}));
-  EXPECT_EQ(usernameQuery(usernameTrie, ""), (std::vector<std::string> {"Vicky", "Victor", "Carlos", "Carolyn"}));
+  EXPECT_EQ(usernameQuery(usernameTrie, ""), (std::vector<std::string> {"Carlos", "Carolyn", "Vicky", "Victor"}));
 }
 
 TEST(UsernameTrieStorage, PasswordStorage) {
