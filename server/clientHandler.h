@@ -358,6 +358,10 @@ void handleClient(int client_fd) {
                 messagesDictionary[userPair].setRead(messagesSeenMessage.startingIndex, messagesSeenMessage.startingIndex+messagesSeenMessage.messagesSeen - 1, clientUsername);
 
             }
+            case REFRESH_REQUEST:
+            {
+                break;
+            }
             break;
             default:
                 std::cout << "Unrecognized operation\n";

@@ -160,29 +160,33 @@ void deleteAccount(int socket_fd, DeleteAccountMessage &delete_account_message) 
 // handle server messages
 void readSocket() {
     opCode operation;
+    while (true) {
+        int valread = recv(server_socket, &operation, sizeof(opCode), MSG_DONTWAIT);
+        if (valread == -1) {
+            return;
+        }
+        // int valread = read(server_socket, &operation, sizeof(opCode));
+        std::cout << "Read " << std::to_string(valread) << " bytes. Value is " << std::to_string(operation) << std::endl;
 
-    // int valread = recv(server_socket, &operation, sizeof(opCode), MSG_DONTWAIT);
-    int valread = read(server_socket, &operation, sizeof(opCode));
-    std::cout << "Read " << std::to_string(valread) << " bytes. Value is " << std::to_string(operation) << std::endl;
-
-    switch (operation) {
-        case NEW_MESSAGE:
-            {
-                NewMessageMessage msg;
-                try {
-                    msg.parse(server_socket);
-                } catch (std::runtime_error &e) {
-                    throw e;
+        switch (operation) {
+            case NEW_MESSAGE:
+                {
+                    NewMessageMessage msg;
+                    try {
+                        msg.parse(server_socket);
+                    } catch (std::runtime_error &e) {
+                        throw e;
+                    }
                 }
-            }
-            break;
-        case FORCE_LOG_OUT:
-            {
-                std::cout << "Log in on another device detected. Session ended." << std::endl;
-                USER_LOGGED_IN = false;
-                g_ProgramRunning = false;
-            }
-            break;
+                break;
+            case FORCE_LOG_OUT:
+                {
+                    std::cout << "Log in on another device detected. Session ended." << std::endl;
+                    USER_LOGGED_IN = false;
+                    g_ProgramRunning = false;
+                }
+                break;
+        }
     }
     //  tv.tv_usec = 0;
     // setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);

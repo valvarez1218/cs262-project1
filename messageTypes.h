@@ -30,6 +30,8 @@
 #define QUERY_NOTIFICATIONS_REPLY   15
 #define QUERY_MESSAGES_REPLY        16
 #define MESSAGES_SEEN_REPLY         18
+
+#define REFRESH_REQUEST             21
 // #define NEW_MESSAGE_REPLY           19
 
 // This is a value corresponding to the supported operations
@@ -527,10 +529,8 @@ struct ListUsersReply {
             throw std::runtime_error("Error reading number of users from socket.");
         }
 
-        std::cout << "Number of users read: " << std::to_string(numberOfUsers) << std::endl;
         for (int userCount = 0; userCount < numberOfUsers; userCount++) {
             char user[g_UsernameLimit];
-            std::cout << "Going to read username " << std::to_string(userCount) << std::endl;
             valread = recv(socket_fd, &user, g_UsernameLimit,0);
             std::cout << "Read " << std::to_string(valread) << std::endl;
             if (valread == -1) {
