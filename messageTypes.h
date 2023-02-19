@@ -597,7 +597,7 @@ struct QueryNotificationReply {
 
         for (int notificationsCounter = 0; notificationsCounter < numberOfUsers; notificationsCounter++) {
             std::pair<char[g_UsernameLimit], char> userNotesPair;
-            valread = recv(socket_fd, &userNotesPair, sizeof(userNotesPair),0);
+            valread = read(socket_fd, &userNotesPair, sizeof(userNotesPair));
             std::cout << "read " << std::to_string(valread) << std::endl;
             if (valread == -1) {
                 throw std::runtime_error("Error reading notification from socket.");
@@ -650,7 +650,6 @@ struct QueryMessagesReply {
         for (int numMessagesRead = 0; numMessagesRead < numberOfMessages; numMessagesRead++) {
             ReturnMessage msg;
             valread = read(socket_fd, &msg, sizeof(ReturnMessage));
-            std::cout << "Read ReturnMessages read " << std::to_string(valread) << " bytes" << std::endl;
             if (valread == -1) {
                 std::cout << "Error reading message from socket." << std::endl;
                 return numMessagesRead;

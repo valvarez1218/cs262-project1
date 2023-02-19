@@ -11,8 +11,6 @@ int main (void) {
         return -1;
     }
 
-    // TODO: hide functionality that is not available until login if user not logged in
-
     // Main loop for user
     char userInput[g_InputLimit];
     std::cin.ignore();
@@ -26,7 +24,6 @@ int main (void) {
         } catch (std::invalid_argument &e) {
             std::cout << e.what() << std::endl;
             printUsage();
-            continue;
         }
         
         readSocket();

@@ -95,7 +95,6 @@ void sendMessage(int socket_fd, SendMessageMessage &send_message_message) {
 
     send(socket_fd, &send_message_message, sizeof(SendMessageMessage), 0);
 
-    // TODO: handle SendMessageReply
     SendMessageReply serverReply;
     int valread = read(socket_fd, &serverReply, sizeof(SendMessageReply));
     if (valread == -1) {
@@ -159,10 +158,18 @@ void deleteAccount(int socket_fd, DeleteAccountMessage &delete_account_message) 
 
 // handle server messages
 void readSocket() {
-    opCode operation;
+    opCode operation = REFRESH_REQUEST;
+    send(server_socket, &operation, sizeof(opCode), 0);
+    timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 500000;
+    setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
     while (true) {
-        int valread = recv(server_socket, &operation, sizeof(opCode), MSG_DONTWAIT);
+        int valread = read(server_socket, &operation, sizeof(opCode));
         if (valread == -1) {
+            std::cout << "No new updates." << std::endl;
+            tv.tv_usec = 0;
+            setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
             return;
         }
         // int valread = read(server_socket, &operation, sizeof(opCode));
@@ -186,8 +193,8 @@ void readSocket() {
                     g_ProgramRunning = false;
                 }
                 break;
+            default:
+                std::cout << "Did not recognize operation from server" << std::endl;
         }
     }
-    //  tv.tv_usec = 0;
-    // setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 }
