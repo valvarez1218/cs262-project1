@@ -62,9 +62,12 @@ std::vector<std::string> extractWords (std::string inputString) {
 std::vector<std::string> makeStringVector (std::string inputString) {
     int firstQuoteIdx = inputString.find_first_of("'\"");
     if (firstQuoteIdx == std::string::npos) {
-        return extractWords(inputString);
+        std::vector<std::string> words = extractWords(inputString);
+        if (words[0] == "send_message") {
+            throw std::invalid_argument("Format Error: send_message command expects message wrapped in quotations.");
+        }
+        return words;
     }
-
 
     std::string substr1 = inputString.substr(0, firstQuoteIdx);
 
