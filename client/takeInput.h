@@ -14,6 +14,7 @@ const std::unordered_map<std::string, opCode> operationMap {
     {"query_notifications",         QUERY_NOTIFICATIONS},
     {"query_messages",              QUERY_MESSAGES},
     {"delete_account",              DELETE_ACCOUNT},
+    {"help",                        HELP}
 };
 
 
@@ -33,6 +34,8 @@ bool takeInput (char (&inputBuffer)[g_InputLimit]) {
 
     return true;
 }
+
+void printUsage();
 
 // This is a helper function for vectorizing the user input
 std::vector<std::string> extractWords (std::string inputString) {
@@ -240,6 +243,10 @@ void parseInput (std::string userInput) {
             }
             break;
 
+        case HELP:
+            printUsage();
+            break;
+
         default:
             throw std::invalid_argument("No matching operation case.");
             break;
@@ -250,6 +257,14 @@ void parseInput (std::string userInput) {
 void printUsage() {
     // TODO: print usage for user
     std::cout << "Chat Usage:" << std::endl;
-    std::cout << "      If Not Logged In:" << std::endl;
-    std::cout << "          - create_account username password:         creates account and logs you in." << std::endl;
+    std::cout << "  If not logged in:" << std::endl;
+    std::cout << "\n      - create_account username password:                 creates account and logs you in." << std::endl;
+    std::cout << "\n      - login username password:                          logs you into existing account" << std::endl;
+    std::cout << "\n  If logged in:" << std::endl;
+    std::cout << "\n      - logout:                                           logs you out and closes application." << std::endl;
+    std::cout << "\n      - list_users prefix:                                lists all users with prefix to command line, if no prefix given lists all users" << std::endl;
+    std::cout << "\n      - send_message username \"message_content\":        sends message content to specified user" << std::endl;
+    std::cout << "\n      - query_notifications:                              prints notifications as 'user: # message(s)'" << std::endl;
+    std::cout << "\n      - query_messages username:                          prints out messages with specified user, up to 20 at at time" << std::endl;
+    std::cout << "\n      - delete_account username password:                 delets account associated with username and exits application." << std::endl;
 }

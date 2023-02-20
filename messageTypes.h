@@ -32,6 +32,7 @@
 #define MESSAGES_SEEN_REPLY         18
 
 #define REFRESH_REQUEST             21
+#define HELP                        22
 // #define NEW_MESSAGE_REPLY           19
 
 // This is a value corresponding to the supported operations
@@ -276,7 +277,7 @@ struct SendMessageMessage {
 
     void populate (std::vector<std::string> inputs) {
         if (inputs.size() != 2) {
-            throw std::invalid_argument("send takes 2 inputs: recipient_username message_content");
+            throw std::invalid_argument("send_message takes 2 inputs: recipient_username message_content");
         }
 
         for (int idx = 0; idx < inputs.size(); idx++) {
