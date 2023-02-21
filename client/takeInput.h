@@ -63,6 +63,10 @@ std::vector<std::string> extractWords (std::string inputString) {
 
 // This function takes a string and returns input as vector of strings as the message classes would expect it
 std::vector<std::string> makeStringVector (std::string inputString) {
+    if (inputString.size() == 0) {
+        return {};
+    }
+
     int firstQuoteIdx = inputString.find_first_of("'\"");
     if (firstQuoteIdx == std::string::npos) {
         std::vector<std::string> words = extractWords(inputString);

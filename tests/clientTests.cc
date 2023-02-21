@@ -25,5 +25,12 @@ TEST(TakeInput, ParsingUserInput) {
     std::string test4 = "one two \"three\" four";
     std::vector<std::string> expected4 {"Format Error: Should not have characters after the final quotation mark."};
     EXPECT_EQ(makeVectorHelper(test4), expected4);
-}
 
+    std::string test5 = "";
+    std::vector<std::string> expected5 {};
+    EXPECT_EQ(makeVectorHelper(test5), expected5);
+
+    std::string test6 = "send_message blank what up dude";
+    std::vector<std::string> expected6 {"Format Error: send_message command expects message wrapped in quotations."};
+    EXPECT_EQ(makeVectorHelper(test6), expected6);
+}
