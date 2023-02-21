@@ -8,36 +8,38 @@
 #include <atomic>
 #include <unordered_map>
 
+// Holds information about the conversation most recently queried by a thread.
 struct CurrentConversation {
     char username[g_UsernameLimit];
     int messagesSentStartIndex;
     int messagesSentEndIndex;
 };
 
-// Key: user with active conversations, Value: map from users to number of notifications they have
+// Key: user with active conversations, Value: map from users to number of notifications they have.
 struct ConversationsDictionary {
     std::unordered_map<std::string, std::unordered_map<std::string, int> > conversations;
-    std::mutex notificationsMutex; // TODO: had to move lock up 1 level :(
+    std::mutex notificationsMutex;
 
-    // increment new messages
+    // Increment for new messages.
     void newNotification(char senderUsername[g_UsernameLimit], char recipientUsername[g_UsernameLimit]) {
         notificationsMutex.lock();
         conversations[recipientUsername][senderUsername]++;
         notificationsMutex.unlock();
     }
 
-    // decrement seen messages
+    // Decrement for seen messages.
     void notificationSeen(char senderUsername[g_UsernameLimit], char recipientUsername[g_UsernameLimit]) {
         notificationsMutex.lock();
         conversations[recipientUsername][senderUsername]--;
         notificationsMutex.unlock();
     }
 
-    // TODO: Package notifications to be sent out
+    // Packages notifications to be sent out.
     std::vector<std::pair<char [g_UsernameLimit], char> > getNotifications(char recipientUsername [g_UsernameLimit]) {
         std::vector<std::pair<char [g_UsernameLimit], char> > allNotifications;
 
         for (auto const& pair : conversations[recipientUsername]) {
+            // Adds user to list if they have more than 0 notifications.
             if (pair.second > 0) {
                 std::pair<char [g_UsernameLimit], char> notificationItem;
                 strcpy(notificationItem.first, pair.first.c_str());
@@ -53,14 +55,12 @@ struct ConversationsDictionary {
 
 };
 
-ConversationsDictionary conversationsDictionary;
-
 // Messages dictionary key, consists of two usernames.
 struct UserPair {
-    std::string smallerUsername; // lexicographically smaller username
-    std::string largerUsername; // lexicographically larger username
+    std::string smallerUsername; // lexicographically smaller username.
+    std::string largerUsername; // lexicographically larger username.
 
-    // Initializes user pair using lexicographic ordering
+    // Initializes user pair using lexicographic ordering.
     UserPair (char username1[g_UsernameLimit], char username2[g_UsernameLimit]) {
         std::string username1String = username1;
         std::string username2String = username2;
@@ -79,11 +79,12 @@ struct UserPair {
     friend bool operator== (const UserPair& pair1, const UserPair& pair2);
 };
 
+// Allows UserPairs to be used as dictionary keys by providing a method to order them.
 bool operator== (const UserPair& pair1, const UserPair& pair2) {
     return (pair1.smallerUsername == pair2.smallerUsername) && (pair1.largerUsername == pair2.largerUsername);
 }
 
-// A single messsage from a the message dictionary value vector
+// A single messsage from the message dictionary value vector.
 struct StoredMessage {
     std::string senderUsername;
     bool isRead;
@@ -96,35 +97,35 @@ struct StoredMessage {
     }
 };
 
-// Wrapping for the return value of getStoredMessages in the StoredMessages struct
+// Wrapping for the return value of getStoredMessages in the StoredMessages struct.
 struct GetStoredMessagesReturnValue {
     int lastMessageIndex;
     int firstMessageIndex;
     std::vector<ReturnMessage> messageList;
 };
 
-// A list of stored messages
+// A list of stored messages, the messages dictionary value.
 struct StoredMessages {
     std::vector<StoredMessage> messageList;
     std::mutex messageMutex;
 
-    // Adding a new message onto the messageList
-    // TODO: have this return thread of the recipient?
+    // Adding a new message onto the messageList.
     void addMessage(char senderUsername[g_UsernameLimit], char recipientUsername[g_UsernameLimit], char message[g_MessageLimit]) {
         messageMutex.lock();
 
         StoredMessage newMessage(senderUsername, false, message);
         messageList.push_back(newMessage);
 
-        // Increment unread messages for recipient 
+        // Increment unread messages for recipient.
         conversationsDictionary.newNotification(senderUsername, recipientUsername);
         messageMutex.unlock();
     }
 
-    // Setting a subset of messages as read given the username of the reader
+    // Setting a subset of messages as read given the username of the reader.
     void setRead(int startingIndex, int endingIndex, char readerUsername[g_UsernameLimit]) {
         messageMutex.lock();
         for (int i = startingIndex; i < endingIndex + 1; i++) {
+            // If the senderUsername is not the name of the recipient and the message has not been read before.
             if (messageList[i].senderUsername != readerUsername && messageList[i].isRead != true ) {
                 messageList[i].isRead = true;
                 conversationsDictionary.notificationSeen(const_cast<char*>(messageList[i].senderUsername.c_str()), readerUsername);
@@ -134,26 +135,22 @@ struct StoredMessages {
 
     }
 
-    // Returning the messages a user queries
-    // TODO: lastMessageDeliveredIndex should be updated upon CONSECUTIVE query messages calls and reset when the user queries other messages
-    // It should also not run if the lastMessageDelivered index is zero, 
+    // Returning the messages a user queries based on the last index of the messages they queried.
     GetStoredMessagesReturnValue getStoredMessages(char readerUsername[g_UsernameLimit], int lastMessageDeliveredIndex) {
-        // assert(lastMessageDeliveredIndex!=0);
         messageMutex.lock();
 
-        // Keep track of the last unread message for that user
         GetStoredMessagesReturnValue returnValue;
         int currNumberOfMessages = messageList.size();
         int firstMessageIndex; 
         int lastMessageIndex; 
 
-        // Calculate which messages need to be returned
+        // Calculate which messages need to be returned.
         if (lastMessageDeliveredIndex == -1 || lastMessageDeliveredIndex == 0) {
-            // If no previous messages were delivered
+            // If no previous messages were delivered or all messages have been delivered.
             firstMessageIndex = std::max(currNumberOfMessages - int(g_MessageQueryLimit), 0);
             lastMessageIndex = std::min(firstMessageIndex + int(g_MessageQueryLimit), currNumberOfMessages -1);
         } else {
-            // If there were previous consecutive queries
+            // If there were previous consecutive queries.
             lastMessageIndex = lastMessageDeliveredIndex - 1;
             firstMessageIndex = std::max(lastMessageIndex - int(g_MessageQueryLimit), 0);
         }
@@ -162,7 +159,7 @@ struct StoredMessages {
         returnValue.lastMessageIndex = lastMessageIndex;
 
 
-        // Grab relevant messages
+        // Grab relevant messages and add them to a vector to be returned.
         for (int i = firstMessageIndex; i < lastMessageIndex+1; i++) {
             ReturnMessage newItem;
             
@@ -175,13 +172,13 @@ struct StoredMessages {
         messageMutex.unlock();
 
         return returnValue;
-
         
     }
 
 };
 
 
+// Allows UserPairs to be used as keys to dictionaries
 template<>
 struct std::hash<UserPair>
 {
@@ -192,11 +189,7 @@ struct std::hash<UserPair>
     }
 };
 
-std::unordered_map<UserPair, StoredMessages> messagesDictionary;
-
-std::mutex socketDictionary_mutex;
-std::map<std::string, int> socketDictionary;
-
+// Trie node.
 struct CharNode {
     char character;
     std::unordered_map<char, CharNode*> children;
@@ -211,7 +204,6 @@ struct CharNode {
 };
 
 std::unordered_map<CharNode*, std::string> userPasswordMap;
-
 
 struct UserTrie {
     private:
@@ -312,6 +304,7 @@ struct UserTrie {
             }
         }
 
+        // Check if a user exists given a username.
         bool userExists(std::string user) {
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(user);
             if (nodeIdxPair.first == nullptr || nodeIdxPair.second < user.size()-1 || !nodeIdxPair.first->isTerminal) {
@@ -321,6 +314,7 @@ struct UserTrie {
             return nodeIdxPair.first->isTerminal;
         }
 
+        // Verify a username and password.
         bool verifyUser(std::string username, std::string password) {
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
             if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size()-1 || !nodeIdxPair.first->isTerminal) {
@@ -328,10 +322,10 @@ struct UserTrie {
                 return false;
             }
 
-            // return strcmp(password.c_str(), (userPasswordMap[nodeIdxPair.first]).c_str()) == 0;
             return password == userPasswordMap[nodeIdxPair.first];
         }
 
+        // Delete a user from the trie.
         void deleteUser(std::string username) {
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
             if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size()-1 || !nodeIdxPair.first->isTerminal) {
@@ -343,11 +337,18 @@ struct UserTrie {
             userPasswordMap.erase(nodeIdxPair.first);
         }
 };
-// TODO: Users Trie
+
+// Global declarations for the server
+ConversationsDictionary conversationsDictionary;
+
+std::unordered_map<UserPair, StoredMessages> messagesDictionary;
+
+std::mutex socketDictionary_mutex;
+std::map<std::string, int> socketDictionary;
+
 std::mutex userTrie_mutex;
 UserTrie userTrie;
 
-// Global storage for new messsage operations
 std::mutex queuedOperations_mutex;
 std::unordered_map<int, std::vector<NewMessageMessage>> queuedOperationsDictionary;
 std::unordered_map<int, bool> forceLogoutDictionary;
@@ -362,7 +363,3 @@ void cleanup(std::string clientUsername, int client_fd) {
 }
 
 char threadExitReturnVal [50];
-// Initialize Trie
-// Add user
-// Find all users associated with a substring
-// Verify username/password pair

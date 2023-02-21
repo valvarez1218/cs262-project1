@@ -16,10 +16,12 @@ void handleClient(int client_fd) {
             std::cout << clientUsername << " forced to exit" << std::endl;
             forceLogoutDictionary.erase(client_fd);
 
-            // Closing the thread
+            // Closing the thread.
             strcpy(threadExitReturnVal, "Thread exited");
             pthread_exit(threadExitReturnVal);
         }
+
+        queuedOperations_mutex.lock();
 
         // Send new message notifications to the client if they exist.
         if (queuedOperationsDictionary.find(client_fd) != queuedOperationsDictionary.end()) {
@@ -31,6 +33,8 @@ void handleClient(int client_fd) {
 
             queuedOperationsDictionary.erase(client_fd);
         }
+
+        queuedOperations_mutex.unlock();
         
         // Attempting to read an operation code from the socket.
         opCode operation;
@@ -180,30 +184,32 @@ void handleClient(int client_fd) {
                 sendMessageMessage.parse(client_fd);
                 int queryResult = 0; // Message sent!
 
-                // Check if user exists
+                // Check if user exists.
                 bool userExists = userTrie.userExists(sendMessageMessage.recipientUsername);
                 if (userExists) {
-                    std::cout << "Adding message to storage from '" << clientUsername << "' to '" << sendMessageMessage.recipientUsername << "'" << std::endl;
-                    // Add message to messages dictionary
+                    std::cout << "Sending message from '" << clientUsername << "' to '" << sendMessageMessage.recipientUsername << "'" << std::endl;
+                    // Add message to messages dictionary.
                     UserPair userPair(clientUsername, sendMessageMessage.recipientUsername);
                     messagesDictionary[userPair].addMessage(clientUsername, sendMessageMessage.recipientUsername, sendMessageMessage.messageContent);
 
-                    // W
+                    // Queue new message notifications for the recipient's thread.
                     NewMessageMessage newMessageMessage(clientUsername);
                     socketDictionary_mutex.lock();
+                    queuedOperations_mutex.lock();
                     if (socketDictionary.find(sendMessageMessage.recipientUsername) != socketDictionary.end()){
                         queuedOperations_mutex.lock();
                         queuedOperationsDictionary[socketDictionary[sendMessageMessage.recipientUsername]].push_back(newMessageMessage);
                         queuedOperations_mutex.unlock();
                     }
-
+                    queuedOperations_mutex.unlock();
                     socketDictionary_mutex.unlock();
 
                 } else {
                     std::cout << "Tried to send a message to a user that doesn't exist '" << sendMessageMessage.recipientUsername << "'" << std::endl;
-                     queryResult = 1; // User doesn't exist
+                     queryResult = 1; // User doesn't exist.
                 }
 
+                // Create and send a response.
                 SendMessageReply sendMessageReply(queryResult);
                 send(client_fd, &sendMessageReply, sizeof(sendMessageReply), 0);
 
@@ -211,85 +217,82 @@ void handleClient(int client_fd) {
             break;
             case QUERY_NOTIFICATIONS:
             {
-                std::cout << "Getting notifications for '" << clientUsername << "'" << std::endl;
-                // Retrieve notifications from the conversations dictionary
+                // Retrieve notifications from the conversations dictionary.
                 std::vector<std::pair<char [g_UsernameLimit], char> > notifications = conversationsDictionary.getNotifications(clientUsername);
 
-                // for (int i = 0; i < notifications.size(); i++) {
-                //     std::cout << "Username: " << notifications[i].first << ", " << std::to_string(notifications[i].second) << " notifications" << std::endl;
-                // }
-
-                // Construct and send a reply
+                // Send operation code and number of (usernames, # of notifications) to expect.
                 QueryNotificationReply queryNotificationsReply(notifications.size());
                 send(client_fd, &queryNotificationsReply, sizeof(queryNotificationsReply), 0);
                 
+                // Send notifications.
                 for (int i = 0; i < notifications.size(); i++) {
-                    std::cout << "Username: " << notifications[i].first << ", " << std::to_string(notifications[i].second) << " notifications" << std::endl;
                     int valsent = send(client_fd, &notifications[i], sizeof(std::pair<char[g_UsernameLimit], char>),0);
-                    std::cout << "Sent " << std::to_string(valsent) << std::endl;
                 }
-                // int valsent = send(client_fd, notifications.data(), notifications.size()*sizeof(std::pair<char [g_UsernameLimit], char>),0);
 
-                // std::cout << valsent << " bytes sent" << std::endl;
+                 std::cout << "Getting notifications for '" << clientUsername << "'" << std::endl;
 
             }
             break;
             case QUERY_MESSAGES:
             {
-                // Parse message
+                // Parse message.
                 QueryMessagesMessage queryMessagesMessage;
                 queryMessagesMessage.parse(client_fd);
-                int queryStatus = 0;
+                int queryStatus = 0; // Recipient exists
 
-                std::cout << "Getting messages between '" << clientUsername << "' and '"<< queryMessagesMessage.username << "'" << std::endl;
+                bool userExists = userTrie.userExists(queryMessagesMessage.username) ;
 
-                // Get stored messages depending on if the client has the conversation open
-                UserPair userPair(queryMessagesMessage.username, clientUsername);
-                int lastMessageDeliveredIndex = -1;
-                if (currentConversation.username == queryMessagesMessage.username) {
-                    lastMessageDeliveredIndex = currentConversation.messagesSentStartIndex;
+                if (userExists) {
+                    // Get stored messages depending on if the client has the conversation open.
+                    UserPair userPair(queryMessagesMessage.username, clientUsername);
+                    int lastMessageDeliveredIndex = -1;
+                    if (currentConversation.username == queryMessagesMessage.username) {
+                        lastMessageDeliveredIndex = currentConversation.messagesSentStartIndex;
+                    } else {
+                        strcpy(currentConversation.username, queryMessagesMessage.username);
+                    }
+
+                    GetStoredMessagesReturnValue returnVal = messagesDictionary[userPair].getStoredMessages(clientUsername,lastMessageDeliveredIndex);
+
+                    // Update current conversation information.
+                    currentConversation.messagesSentStartIndex = returnVal.firstMessageIndex;
+                    currentConversation.messagesSentEndIndex = returnVal.lastMessageIndex;
+
+                    for (int i = 0; i < returnVal.messageList.size(); i++) {
+                        std::cout << returnVal.messageList[i].senderUsername<< " : " << returnVal.messageList[i].messageContent << std::endl;
+                    }
+
+                    // Construct and send a reply
+                    QueryMessagesReply queryMessagesReply(returnVal.messageList.size(), returnVal.firstMessageIndex);
+                    send(client_fd, &queryMessagesReply, sizeof(queryMessagesReply), 0);
+
+                    send(client_fd, returnVal.messageList.data(), sizeof(ReturnMessage) * returnVal.messageList.size(), 0);
+
+                    std::cout << "Returned messages between '" << clientUsername << "' and '"<< queryMessagesMessage.username << "'" << std::endl;
+
                 } else {
-                    strcpy(currentConversation.username, queryMessagesMessage.username);
+                    queryStatus = 1; // Recipient doesn't exist.
+                    QueryMessagesReply queryMessagesReply(0, 0);
+                    send(client_fd, &queryMessagesReply, sizeof(queryMessagesReply), 0);
+                    std::cout << "Tried to query messages between '" << clientUsername << "' and '"<< queryMessagesMessage.username << "', but '" << queryMessagesMessage.username << "' doesn't exist." << std::endl;
                 }
-
-                GetStoredMessagesReturnValue returnVal = messagesDictionary[userPair].getStoredMessages(clientUsername,lastMessageDeliveredIndex);
-
-                // Update current conversation information
-                currentConversation.messagesSentStartIndex = returnVal.firstMessageIndex;
-                currentConversation.messagesSentEndIndex = returnVal.lastMessageIndex;
-
-                for (int i = 0; i < returnVal.messageList.size(); i++) {
-                    std::cout << returnVal.messageList[i].senderUsername<< " : " << returnVal.messageList[i].messageContent << std::endl;
-                }
-
-                // Construct and send a reply
-                QueryMessagesReply queryMessagesReply(returnVal.messageList.size(), returnVal.firstMessageIndex);
-                send(client_fd, &queryMessagesReply, sizeof(queryMessagesReply), 0);
-
-                send(client_fd, returnVal.messageList.data(), sizeof(ReturnMessage) * returnVal.messageList.size(), 0);
-
-                // for (int i = 0; i < returnVal.messageList.size(); i++) {
-                //     int valsent = send(client_fd, &returnVal.messageList[i], sizeof(ReturnMessage), 0);
-                std::cout << "QueryMessage reply sent" << std::endl;
-                // }
-                // send(client_fd, returnVal.messageList.data(), returnVal.messageList.size() * sizeof(ReturnMessage), 0);
-                
-
             }
             break;
             case DELETE_ACCOUNT:
             {   
                 std::cout << "Deleting account of '" << clientUsername << "'" << std::endl;
+
                 // Flag user account as deleted in trie
                 userTrie_mutex.lock();
                 userTrie.deleteUser(std::string(clientUsername));
                 userTrie_mutex.unlock();
 
-                // Closes thread
+                // Deleting user from session-related storage
                 socketDictionary_mutex.lock();
                 cleanup(clientUsername, client_fd);
                 socketDictionary_mutex.unlock();
 
+                // Closing the thread
                 strcpy(threadExitReturnVal, "Thread exited");
                 pthread_exit(threadExitReturnVal);
  
@@ -297,13 +300,12 @@ void handleClient(int client_fd) {
             break;
             case MESSAGES_SEEN:
             {
-                // Parse message
+                // Parse message.
                 MessagesSeenMessage messagesSeenMessage;
                 messagesSeenMessage.parse(client_fd);
 
                 // Set messages as read
                 UserPair userPair(currentConversation.username, clientUsername);
-                // if (messagesSeenMessage.startingIndex == -1)
                 messagesDictionary[userPair].setRead(messagesSeenMessage.startingIndex, messagesSeenMessage.startingIndex+messagesSeenMessage.messagesSeen - 1, clientUsername);
 
             }
