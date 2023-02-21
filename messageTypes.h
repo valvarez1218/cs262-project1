@@ -446,26 +446,29 @@ struct NewMessageMessage {
         strcpy(senderUsername, username);
     }
 
+    // Method used by client. Given a socket file descriptor the class fills in its field.
     void parse (int socket_fd) {
         ssize_t valread = read(socket_fd, &senderUsername[0], g_UsernameLimit);
         if (valread == -1) {
             throw std::runtime_error("Error reading new message from socket.");
         }
         std::cout << "New message from " << senderUsername << "!" << std::endl;
-        // valread = read(socket_fd, &messageContent[0], g_MessageLimit);
-        // return valread == -1 ? false : true;
     }
 };
 
 
-// TODO
+// Message sent from server to client. After requesting to create account the server
+//      lets tue client know if the account was created successfully or if there was an error.
 struct CreateAccountReply {
     opCode operation;
     char queryStatus;
 
+
+    // Default constructor, initializes nothing.
     CreateAccountReply() {
     }
 
+    // Overloaded constructor, sets query status.
     CreateAccountReply(int c_queryStatus) {
         operation = CREATE_ACCOUNT_REPLY;
         queryStatus = c_queryStatus;
@@ -473,47 +476,57 @@ struct CreateAccountReply {
 };
 
 
-// TODO
+// Message sent from server to client. After client reqeusts login
+//      lets the client know whether login was successful
 struct LoginReply {
     // 0 = success, 1 = failure (username or password incorrect)
     opCode operation;
     char queryStatus;
 
+    // Default constructor, initializes nothing
     LoginReply() {
     }
 
+    // Overloaded constructor, sets the query status
     LoginReply(int c_queryStatus) {
         operation = LOGIN_REPLY;
         queryStatus = c_queryStatus;
     }
 };
 
+// Wrapper for username strings. Allows for storing vectors of usernames and
+//      faciliates sending over sockets.
 struct Username {
     char username[g_UsernameLimit];
 
-    // default constructor, initializes nothing
+    // default constructor, initializes nothing.
     Username(){}
-    
+
+
+    // Overloaded constructor, sets username.    
     Username(std::string c_username) {
         strcpy(username, c_username.c_str());
     }
 };
 
 
-
+// Message sent from server to client. Returns the list of users found (or none) after
+//       the client requests users matching a specified prefix.
 struct ListUsersReply {
     opCode operation;
     char numberOfUsers;
-    // std::vector<Username> usernames;
 
-    // Default Constructor, initializes nothing
+    // Default Constructor, initializes nothing.
     ListUsersReply(){}
 
+    // Overloaded constructor, sets number of users
     ListUsersReply(int c_numberOfUsers) {
         operation = LIST_USERS_REPLY;
         numberOfUsers = c_numberOfUsers;
     }
 
+    // Method used by client. Given a socket file descriptor class fills in fields and reads
+    //      all users returned.
     void readUsernames(int socket_fd) {
         int valread = read(socket_fd, &operation, sizeof(opCode));
         if (valread == -1) {
@@ -527,7 +540,7 @@ struct ListUsersReply {
 
         for (int userCount = 0; userCount < numberOfUsers; userCount++) {
             char user[g_UsernameLimit];
-            valread = recv(socket_fd, &user, g_UsernameLimit,0);
+            valread = recv(socket_fd, &user, g_UsernameLimit, MSG_WAITALL);
             if (valread == -1) {
                 throw std::runtime_error("Error reading username from socket.");
             }
@@ -537,17 +550,19 @@ struct ListUsersReply {
 };
 
 
-// TODO
+// Messages sent from server to client. After the client has requested to send a messge, tells 
+//      the client whether or not the messages was sent successfully. 
 struct SendMessageReply {
     opCode operation;
     // 0 = success, 1 = user doesn't exist
     char queryStatus;
 
-    // Default constructor, initializes nothing
+    // Default constructor, initializes nothing.
     SendMessageReply(){
         operation = SEND_MESSAGE_REPLY;
     }
 
+    // Overloaded constructor, sets query status.
     SendMessageReply(int c_queryStatus) {
         operation = SEND_MESSAGE_REPLY;
         queryStatus = c_queryStatus;
@@ -555,29 +570,23 @@ struct SendMessageReply {
 };
 
 
+// Messages sent from server to client. After client reqeusts notifications the server
+//      reponds with the number of notifications to expect.
 struct QueryNotificationReply {
     opCode operation;
     char numberOfUsers;
-    // std::vector<std::pair<char [g_UsernameLimit], char> > notifications;
 
-
-    // Default constructor, initializes nothing
+    // Default constructor, initializes nothing.
     QueryNotificationReply(){};
 
+    // Overloaded constructor; sets number of users.
     QueryNotificationReply(int users) {
         numberOfUsers = users;
-
-        // for (int i=0; i < notificationsList.size(); i++) {
-        //     std::pair<char [g_UsernameLimit], char> newVectorElement;
-        //     strcpy(newVectorElement.first, notificationsList[0].first);
-        //     newVectorElement.second = notificationsList[0].second;
-
-        //     notifications.push_back(newVectorElement);
-        // }
         operation = QUERY_NOTIFICATIONS_REPLY;
     }
 
-    // reads from socket and fills in fields
+    // Method used by client. Given a socket file descriptor the class fills in its fields
+    //      and prints out notifications.
     void readNotifications(int socket_fd) {
         int valread = read(socket_fd, &operation, sizeof(opCode));
         if (valread == -1) {
@@ -614,18 +623,19 @@ struct QueryMessagesReply {
     opCode operation;
     char numberOfMessages;
     char firstMessageIndex;
-    // std::vector<ReturnMessage> messageList;
 
     // Default constructor, initializes nothing
     QueryMessagesReply(){}
 
+    // Overloaded constructor, sets number of messages and first message index.
     QueryMessagesReply(int c_numberOfMessages, int c_firstMessageIndex) {
         operation = QUERY_MESSAGES_REPLY;
         numberOfMessages = c_numberOfMessages;
         firstMessageIndex = c_firstMessageIndex;
-        // messageList = c_messageList;
     }
 
+    // Method used by client. Given a socket file descriptor the class fills in its fields
+    //      and prints out the messages read
     int readMessages(int socket_fd) {
         int valread = read(socket_fd, &operation, sizeof(opCode));
         if (valread == -1) {
@@ -657,28 +667,13 @@ struct QueryMessagesReply {
 };
 
 
+// Message sent from server to client to indicate that their session must end as
+//      a login was detected elsewhere.
 struct ForceLogOutReply {
     opCode operation;
-    
+
+    // Default constructor, sets operation code to FORCE_LOG_OUT    
     ForceLogOutReply() {
         operation = FORCE_LOG_OUT;
     }
 };
-
-
-// PROBABLY DON"T NEED
-// struct MessagesSeenReply : Reply {
-
-//     MessagesSeenReply() {
-//         operation = MESSAGES_SEEN_REPLY;
-//     }
-// };
-
-
-// PROBABLY DON"T NEED??
-// struct NewMessageReply : Reply {
-
-//     NewMessageReply() {
-//         operation = NEW_MESSAGE_REPLY;
-//     }
-// };
