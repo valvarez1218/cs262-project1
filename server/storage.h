@@ -125,7 +125,7 @@ struct StoredMessages {
     void setRead(int startingIndex, int endingIndex, char readerUsername[g_UsernameLimit]) {
         messageMutex.lock();
         for (int i = startingIndex; i < endingIndex + 1; i++) {
-            if (messageList[i].senderUsername != readerUsername) {
+            if (messageList[i].senderUsername != readerUsername && messageList[i].isRead != true ) {
                 messageList[i].isRead = true;
                 conversationsDictionary.notificationSeen(const_cast<char*>(messageList[i].senderUsername.c_str()), readerUsername);
             }
@@ -222,8 +222,7 @@ struct UserTrie {
         //      If username could not be added throws invalid_argument exception
         void addUsername(std::string username, std::string password) {
             if (!validString(username)) {
-                std::string errorMsg = "Username '" + username + "' is invalid. Must be alphanumeric and at least 1 character.";
-                throw std::invalid_argument(errorMsg);
+                std::cout << "Username '" << username << "' is invalid. Must be alphanumeric and at least 1 character." << std::endl;
             }
 
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
@@ -263,8 +262,8 @@ struct UserTrie {
             int index = nodeIdxPair.second;
 
             if (index != usernamePrefix.size()-1) {
-                std::string errorMsg = "No usernames found for prefix '" + usernamePrefix + "'";
-                throw std::runtime_error(errorMsg);
+                std::cout << "No usernames found for prefix '" << usernamePrefix << "'"<< std::endl;
+                return {};
             }
 
             // Perform DFS starting at deepest node
@@ -336,8 +335,8 @@ struct UserTrie {
         void deleteUser(std::string username) {
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
             if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size()-1 || !nodeIdxPair.first->isTerminal) {
-                std::string errorMsg = "User '" + username + "' not found.";
-                throw std::runtime_error(errorMsg);
+                std::cout << "User '" << username << "' not found." << std::endl;
+                return;
             }
 
             nodeIdxPair.first->isTerminal = false;
@@ -355,8 +354,8 @@ std::unordered_map<int, bool> forceLogoutDictionary;
 
 
 // Cleaning up session-related storage structures
-void cleanup(std::string clientUsername, std::thread::id thread_id, int client_fd) {
-    std::cout << "killing thread :" << thread_id << std::endl;
+void cleanup(std::string clientUsername, int client_fd) {
+    std::cout << "Disconnecting client: " << clientUsername << std::endl;
     queuedOperationsDictionary.erase(client_fd);
     socketDictionary.erase(clientUsername);
     close(client_fd);
