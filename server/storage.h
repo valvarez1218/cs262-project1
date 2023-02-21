@@ -24,12 +24,12 @@ struct ConversationsDictionary {
         notificationsMutex.lock();
         conversations[recipientUsername][senderUsername]++;
         notificationsMutex.unlock();
-    }  
+    }
 
     // decrement seen messages
     void notificationSeen(char senderUsername[g_UsernameLimit], char recipientUsername[g_UsernameLimit]) {
         notificationsMutex.lock();
-       conversations[recipientUsername][senderUsername]--;
+        conversations[recipientUsername][senderUsername]--;
         notificationsMutex.unlock();
     }
 
