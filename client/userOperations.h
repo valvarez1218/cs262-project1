@@ -57,7 +57,6 @@ void login(int socket_fd, LoginMessage &login_message) {
 
 // ALL FUNCTIONS BELOW HERE REQUIRE USER TO BE LOGGED IN
 
-
 void logout(int socket_fd, LogoutMessage &logout_message) {
     if (!USER_LOGGED_IN) {
         throw std::runtime_error(loggedInErrorMsg("logout"));
@@ -164,7 +163,7 @@ void readSocket() {
     tv.tv_sec = 0;
     tv.tv_usec = 500000;
     setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-    while (true) {
+    while (true && g_ProgramRunning) {
         int valread = read(server_socket, &operation, sizeof(opCode));
         if (valread == -1) {
             std::cout << "No new updates." << std::endl;
@@ -172,8 +171,6 @@ void readSocket() {
             setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
             return;
         }
-        // int valread = read(server_socket, &operation, sizeof(opCode));
-        std::cout << "Read " << std::to_string(valread) << " bytes. Value is " << std::to_string(operation) << std::endl;
 
         switch (operation) {
             case NEW_MESSAGE:
@@ -194,7 +191,8 @@ void readSocket() {
                 }
                 break;
             default:
-                std::cout << "Did not recognize operation from server" << std::endl;
+                break;
+                // std::cout << "Did not recognize operation from server" << std::endl;
         }
     }
 }

@@ -38,16 +38,15 @@
 // This is a value corresponding to the supported operations
 typedef char opCode;
 
-const int NotImplementedException = 505;
 
 const size_t g_UsernameLimit = 32;
-const size_t g_PasswordLimit = 31;
-const size_t g_MessageLimit = 1001;
+const size_t g_PasswordLimit = 32;
+const size_t g_MessageLimit = 1000;
 const size_t g_MessageQueryLimit = 20;
 
-const size_t g_ClientUsernameLimit = g_UsernameLimit - 1;
-const size_t g_ClientPasswordLimit = g_PasswordLimit - 1;
-const size_t g_ClientMessageLimit = g_MessageLimit - 1;
+// const size_t g_ClientUsernameLimit = g_UsernameLimit - 1;
+// const size_t g_ClientPasswordLimit = g_PasswordLimit - 1;
+// const size_t g_ClientMessageLimit = g_MessageLimit - 1;
 
 const std::string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
@@ -61,6 +60,9 @@ bool validString(std::string inputString) {
     return true;
 }
 
+
+// Given a field and its character limit checks that the passed in value adheres to alphabet and 
+//  character limit restrictions
 void validateField(std::string fieldName, std::string fieldValue, const size_t fieldLimit) {
     if (fieldValue.size() < 1) {
         std::string errorMsg = fieldName + " cannot be empty string.";
@@ -78,36 +80,21 @@ void validateField(std::string fieldName, std::string fieldValue, const size_t f
 }
 
 
-
-
-// struct Message {
-//     opCode operation;
-
-//     virtual bool parse (int socket_fd) {
-//         throw NotImplementedException;
-//     };
-
-//     virtual void populate (std::vector<std::string> inputFields) {
-//         throw std::runtime_error("'populate' method not implemented for this class.");
-//     };
-// };
-
-
-struct Reply {
-    opCode operation;
-    int errno;
-};
-
-
+// Message type sent by client when creating an account.
+//      Contains the validated username and password the user
+//      is requesting to make their account with
 struct CreateAccountMessage {
     opCode operation;
     char userName[g_UsernameLimit];
     char password[g_PasswordLimit];
-
+    
+    // Default constructor, sets the operation code to CREATE_ACCOUNT
     CreateAccountMessage () {
         operation = CREATE_ACCOUNT;
     }
 
+    // Given a socket file descriptor, the class fills in its own fields.
+    //      This method is used by the server to read in the client request.
     bool parse (int socket_fd) {
         ssize_t valread = read(socket_fd, &userName[0], g_UsernameLimit);
         if (valread == -1) {
@@ -122,6 +109,10 @@ struct CreateAccountMessage {
         return true;
     }
 
+    // Given a vector of the user inputs, the class validates the input and populates
+    //      its fields. This method is used by the client after the user input has been 
+    //      parsed and turned into a vector of strings to create the message which is
+    //      sent to the server.
     void populate (std::vector<std::string> inputField) {
         if (inputField.size() != 2) {
             throw std::invalid_argument("create_account takes 2 inputs: username password");
@@ -132,7 +123,7 @@ struct CreateAccountMessage {
                 std::string user = inputField[idx];
                 // TODO: try validateUsername
                 try {
-                    validateField("Username", user, g_ClientUsernameLimit);
+                    validateField("Username", user, g_UsernameLimit);
                 } catch (std::invalid_argument &e) {
                     throw e;
                 }
@@ -143,7 +134,7 @@ struct CreateAccountMessage {
             if (idx == 1) {
                 std::string pass_word = inputField[idx];
                 try {
-                    validateField("Password", pass_word, g_ClientPasswordLimit);
+                    validateField("Password", pass_word, g_PasswordLimit);
                 } catch (std::invalid_argument &e) {
                     throw e;
                 }
@@ -155,15 +146,19 @@ struct CreateAccountMessage {
 };
 
 
+// Message type sent by client to server to attempt to login to an account.
 struct LoginMessage {
     opCode operation;
     char userName[g_UsernameLimit] = {0};
     char password[g_PasswordLimit] = {0};
     
+    // Default constructor, sets operation code to LOGIN
     LoginMessage() {
         operation = LOGIN;
     }
 
+    // Method used by the server. Given a socket file descriptor the class populates its
+    //      own fields by reading from the socket. 
     bool parse (int socket_fd) {
         ssize_t valread = read(socket_fd, &userName[0], g_UsernameLimit);
         if (valread == -1) {
@@ -178,6 +173,8 @@ struct LoginMessage {
         return true;
     }
 
+    // Method used by client. Given a vector representing the user input the class populates
+    //      its own fields. 
     void populate(std::vector<std::string> inputField) {
         if (inputField.size() != 2) {
             throw std::invalid_argument("login takes 2 inputs: username password");
@@ -187,7 +184,7 @@ struct LoginMessage {
             if (idx == 0) {
                 std::string user = inputField[idx];
                 try {
-                    validateField("Username", user, g_ClientUsernameLimit);
+                    validateField("Username", user, g_UsernameLimit);
                 } catch (std::invalid_argument &e) {
                     throw e;
                 }
@@ -198,7 +195,7 @@ struct LoginMessage {
             if (idx == 1) {
                 std::string pass_word = inputField[idx];
                 try {
-                    validateField("Password", pass_word, g_ClientPasswordLimit);
+                    validateField("Password", pass_word, g_PasswordLimit);
                 } catch (std::invalid_argument &e) {
                     throw e;
                 }
@@ -209,13 +206,19 @@ struct LoginMessage {
     }
 };
 
+
+// Message sent from client to server to let it know that the client is
+//      ending its session and the server can clean up its threads/socket
 struct LogoutMessage {
     opCode operation;
     
+    // Default constructor, sets operation code to LOGOUT
     LogoutMessage () {
         operation = LOGOUT;
     }
 
+    // Method used by client. Given a vector representing the user input
+    //      checks that there are no other inputs given
     void populate(std::vector<std::string> inputs) {
         if (inputs.size() != 0) {
             throw std::invalid_argument("logout takes 0 inputs.");
@@ -224,19 +227,26 @@ struct LogoutMessage {
 };
 
 
+// Message sent from client to server to request a list of users that match an optionally
+//      specified prefix.
 struct ListUsersMessage {
     opCode operation;
     char prefix[g_UsernameLimit] = {0};
 
+    // Default constructor, sets operation code to LIST_USERS
     ListUsersMessage() {
         operation = LIST_USERS;
     }
 
+    // Method used by server. Given a socket file descriptor the class fills in its prefix
+    //      field by reading from the socket
     bool parse (int socket_fd) {
         ssize_t valread = read(socket_fd, &prefix[0], g_UsernameLimit);
         return valread == -1 ? false : true;
     }
 
+    // Method used by client. Given a vector representing user input the class validates the
+    //      given username prefix and populates its prefix field.  
     void populate(std::vector<std::string> inputs) {
         if (inputs.size() > 1) {
             throw std::invalid_argument("list_users takes one optional input: username_prefix");
@@ -245,7 +255,7 @@ struct ListUsersMessage {
         if (inputs.size() == 1) {
             std::string userPrefix = inputs[0];
             try {
-                validateField("Username", userPrefix, g_ClientUsernameLimit);
+                validateField("Username", userPrefix, g_UsernameLimit);
             } catch (std::invalid_argument &e) {
                 throw e;
             }
@@ -256,15 +266,20 @@ struct ListUsersMessage {
 };
 
 
+// Message sent from client to server to request that the message is sent to the specified
+//      user. 
 struct SendMessageMessage {
     opCode operation;
     char recipientUsername[g_UsernameLimit];
     char messageContent[g_MessageLimit];
 
+    // Default constructor, sets operation code to SEND_MESSAGE
     SendMessageMessage() {
         operation = SEND_MESSAGE;
     }
 
+    // Method used by server. Given a socket file descriptor the class fills in its fields
+    //      by reading from the socket. 
     bool parse (int socket_fd) {
         ssize_t valread = read(socket_fd, &recipientUsername[0], g_UsernameLimit);
         if (valread == -1) {
@@ -275,6 +290,8 @@ struct SendMessageMessage {
         return valread == -1 ? false : true;
     }
 
+    // Method used by client. Given a vector representing the user input the class validates
+    //      the inputs and populates its field. 
     void populate (std::vector<std::string> inputs) {
         if (inputs.size() != 2) {
             throw std::invalid_argument("send_message takes 2 inputs: recipient_username message_content");
@@ -284,7 +301,7 @@ struct SendMessageMessage {
             if (idx == 0) {
                 std::string recipient = inputs[idx];
                 try {
-                    validateField("Username", recipient, g_ClientUsernameLimit);
+                    validateField("Username", recipient, g_UsernameLimit);
                 } catch (std::invalid_argument &e) {
                     throw e;
                 }
@@ -294,8 +311,8 @@ struct SendMessageMessage {
 
             if (idx == 1) {
                 std::string content = inputs[idx];
-                if (content.size() > g_ClientMessageLimit) {
-                    std::string errorMessage = "The message_content field takes input of at most " + std::to_string(g_ClientMessageLimit) +
+                if (content.size() > g_MessageLimit) {
+                    std::string errorMessage = "The message_content field takes input of at most " + std::to_string(g_MessageLimit) +
                                                 " characters.\n '" + content + "' is too long.";
                     throw std::invalid_argument(errorMessage);
                 }
@@ -307,13 +324,17 @@ struct SendMessageMessage {
 };
 
 
-
+// Message sent from client to server to request its notifications
 struct QueryNotificationsMessage {
     opCode operation;
+
+    // Default constructor, sets operatio code to QUERY_NOTIFICATIONS
     QueryNotificationsMessage() {
         operation = QUERY_NOTIFICATIONS;
     }
 
+    // Method used by client. Given a vector representing user inputs class
+    //      checks that no other input was given. 
     void populate(std::vector<std::string> inputs) {
         if (inputs.size() != 0) {
             throw std::invalid_argument("query_notifications takes 0 inputs.");
@@ -322,20 +343,25 @@ struct QueryNotificationsMessage {
 };
 
 
-
+// Message sent from client to server to request messages with a specified users.
 struct QueryMessagesMessage {
     opCode operation;
     char username[g_UsernameLimit];
 
+    // Default constructor, sets oepration code to QUERY_MESSAGE
     QueryMessagesMessage () {
         operation = QUERY_MESSAGES;
     }
 
+    // Method used by server. Given a socket file descriptor the class fills in
+    //      its field by reading from the socket.
     bool parse (int socket_fd) {
         ssize_t valread = read(socket_fd, &username[0], g_UsernameLimit);
         return valread == -1 ? false : true;
     }
 
+    // Message used by client. Given a vector representing the user inputs the field
+    //      validates the inputs and populates its fields. 
     void populate(std::vector<std::string> inputs) {
         if (inputs.size() != 1) {
             throw std::invalid_argument("query_messages takes 1 input: username");
@@ -343,7 +369,7 @@ struct QueryMessagesMessage {
 
         std::string user = inputs[0];
         try {
-            validateField("Username", user, g_ClientUsernameLimit);
+            validateField("Username", user, g_UsernameLimit);
         } catch (std::invalid_argument &e) {
             throw e;
         }
@@ -353,73 +379,47 @@ struct QueryMessagesMessage {
 };
 
 
-
+// Message sent from client to server to request that the user's account is deleted
 struct DeleteAccountMessage {
     opCode operation;
-    char username[g_UsernameLimit];
-    char password[g_PasswordLimit];
 
+    // Default constructor, sets operation code to DELETE_ACCOUNT
     DeleteAccountMessage() {
         operation = DELETE_ACCOUNT;
     }
 
-    bool parse (int socket_fd) {
-        ssize_t valread = read(socket_fd, &username[0], g_UsernameLimit);
-        if (valread == -1) {
-            return false;
-        }
-        valread = read(socket_fd, &password[0], g_PasswordLimit);
-        return valread == -1 ? false : true;
-    }
 
+    // Method called by client. Given a vector of inputs checks that no other input was given.
     void populate(std::vector<std::string> inputs) {
-        if (inputs.size() != 2) {
-            throw std::invalid_argument("delete_account takes 2 inputs: username password");
-        }
-
-        for (int idx = 0; idx < inputs.size(); idx++) {
-            if (idx == 0) {
-                std::string user = inputs[idx];
-                try {
-                    validateField("Username", user, g_ClientUsernameLimit);
-                } catch (std::invalid_argument &e) {
-                    throw e;
-                }
-                user += '\0';
-                strcpy(username, user.c_str());
-            }
-
-            if (idx == 1) {
-                std::string pass_word = inputs[idx];
-                try {
-                    validateField("Password", pass_word, g_ClientPasswordLimit);
-                } catch (std::invalid_argument &e) {
-                    throw e;
-                }
-                pass_word += '\0';
-                strcpy(password, pass_word.c_str());
-            }
+        if (inputs.size() != 0) {
+            throw std::invalid_argument("delete_account takes no arguments");
         }
     }
 };
 
 
+// Message sent from client to server to indicate how many messages it read after
+//      querying for messages
 struct MessagesSeenMessage {
     opCode operation;
     char messagesSeen;
     char startingIndex;
-    // char otherUsername[g_UsernameLimit];
 
+    // Default constructor, sets operation code to MESSAGES_SEEN
     MessagesSeenMessage() {
         operation = MESSAGES_SEEN;
     }
 
+    // Overloaded constructor, takes a value for number of messages seen and first
+    //      message index
     MessagesSeenMessage(int numSeen, int startingIdx) {
         operation = MESSAGES_SEEN;
         messagesSeen = numSeen;
         startingIndex = startingIdx;
     }
 
+    // Method used by server. Given a socket file descriptor class fills in its fields
+    //      by reading from the socket. 
     bool parse (int socket_fd) {
         ssize_t valread = read(socket_fd, &messagesSeen, sizeof(char));
         if (valread == -1) {
@@ -427,28 +427,23 @@ struct MessagesSeenMessage {
         }
         valread = read(socket_fd, &startingIndex, sizeof(char));
         return valread == -1 ? false : true;
-
-        // valread = read(socket_fd, &otherUsername[0], g_UsernameLimit);
-        // if (valread == -1) {
-        //     return false;
-        // }
     }
 };
 
 
-
+// Message sent from server to client. Tells the client that there is a new message from the 
+//      specified user.
 struct NewMessageMessage {
     opCode operation;
     char senderUsername[g_UsernameLimit];
-    // char messageContent[g_MessageLimit];
 
     // Default constructor, initializes nothing
     NewMessageMessage(){}
 
-    NewMessageMessage(char username[g_UsernameLimit], char message[g_MessageLimit]) {
+    // Overloaded constructor, takes values for the username
+    NewMessageMessage(char username[g_UsernameLimit]) {
         operation = NEW_MESSAGE;
         strcpy(senderUsername, username);
-        // strcpy(messageContent, message);
     }
 
     void parse (int socket_fd) {
@@ -533,7 +528,6 @@ struct ListUsersReply {
         for (int userCount = 0; userCount < numberOfUsers; userCount++) {
             char user[g_UsernameLimit];
             valread = recv(socket_fd, &user, g_UsernameLimit,0);
-            std::cout << "Read " << std::to_string(valread) << std::endl;
             if (valread == -1) {
                 throw std::runtime_error("Error reading username from socket.");
             }
@@ -650,7 +644,7 @@ struct QueryMessagesReply {
 
         for (int numMessagesRead = 0; numMessagesRead < numberOfMessages; numMessagesRead++) {
             ReturnMessage msg;
-            valread = read(socket_fd, &msg, sizeof(ReturnMessage));
+            valread = recv(socket_fd, &msg, sizeof(ReturnMessage), MSG_WAITALL);
             if (valread == -1) {
                 std::cout << "Error reading message from socket." << std::endl;
                 return numMessagesRead;

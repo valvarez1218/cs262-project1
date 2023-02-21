@@ -19,6 +19,7 @@ int main (void) {
             continue;
         }
 
+
         try {
             parseInput(userInput);
         } catch (std::invalid_argument &e) {

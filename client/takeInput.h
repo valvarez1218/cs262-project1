@@ -265,5 +265,5 @@ void printUsage() {
     std::cout << "\n      - send_message username \"message_content\":        sends message content to specified user" << std::endl;
     std::cout << "\n      - query_notifications:                              prints notifications as 'user: # message(s)'" << std::endl;
     std::cout << "\n      - query_messages username:                          prints out messages with specified user, up to 20 at at time" << std::endl;
-    std::cout << "\n      - delete_account username password:                 delets account associated with username and exits application." << std::endl;
+    std::cout << "\n      - delete_account:                                   delets logged in account." << std::endl;
 }
