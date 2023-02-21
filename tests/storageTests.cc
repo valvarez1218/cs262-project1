@@ -129,6 +129,25 @@ TEST(MessagesDictionaryDict, StoringAndReadingMessages) {
   EXPECT_EQ(conversationsDictionary.conversations[username1][username2], 0);
 }
 
+// TEST(MessagesDictionaryDict, ConsectiveReads) {
+//   char username1[g_UsernameLimit] = "carolyn";
+//   char username2[g_UsernameLimit] = "victor";
+//   char message[g_MessageLimit] = "Hello, Victor!";
+
+//   StoredMessages testStoredMessages;
+
+//   for (char i = 0; i<30 ; i++) {
+//     char newMessage[g_MessageLimit];
+//     newMessage[0] = i;
+//     testStoredMessages.addMessage(username1, username2, newMessage);
+//   }
+
+  
+
+
+
+// }
+
 TEST(MessagesDictionaryDict, GettingMessages) {
   char username1[g_UsernameLimit] = "carolyn";
   char username2[g_UsernameLimit] = "victor";
@@ -165,7 +184,13 @@ TEST(MessagesDictionaryDict, GettingMessages) {
   EXPECT_EQ(conversationsDictionary.conversations[username2][username1], 30);
 
   // Getting messages on second query
-  GetStoredMessagesReturnValue test3 = testStoredMessages.getStoredMessages(username2, 10);
+  GetStoredMessagesReturnValue test3 = testStoredMessages.getStoredMessages(username2, test2.firstMessageIndex);
+
+  EXPECT_EQ(test3.messageList.size(), 10);
+  EXPECT_EQ(test3.firstMessageIndex, 0);
+  EXPECT_EQ(test3.lastMessageIndex, 9);
+
+  GetStoredMessagesReturnValue test4  = testStoredMessages.getStoredMessages(username2, test3.firstMessageIndex);
 
   EXPECT_EQ(test3.messageList.size(), 10);
   EXPECT_EQ(test3.firstMessageIndex, 0);

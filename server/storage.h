@@ -8,21 +8,6 @@
 #include <atomic>
 #include <unordered_map>
 
-
-// TODO: ask nictor why this doesnt work
-// struct Notifications {
-//     int value = 0;
-//     // std::mutex valueMutex;
-
-//     void change(int toAdd) {
-//         // valueMutex.lock();
-//         std::cerr << "value before " << value << "\n";
-//         value += toAdd;
-//         std::cerr << "value after " << value << "\n";
-//         // valueMutex.unlock();
-//     }
-// };
-
 struct CurrentConversation {
     char username[g_UsernameLimit];
     int messagesSentStartIndex;
@@ -163,7 +148,7 @@ struct StoredMessages {
         int lastMessageIndex; 
 
         // Calculate which messages need to be returned
-        if (lastMessageDeliveredIndex == -1) {
+        if (lastMessageDeliveredIndex == -1 || lastMessageDeliveredIndex == 0) {
             // If no previous messages were delivered
             firstMessageIndex = std::max(currNumberOfMessages - int(g_MessageQueryLimit), 0);
             lastMessageIndex = std::min(firstMessageIndex + int(g_MessageQueryLimit), currNumberOfMessages -1);
@@ -210,11 +195,7 @@ struct std::hash<UserPair>
 std::unordered_map<UserPair, StoredMessages> messagesDictionary;
 
 std::mutex socketDictionary_mutex;
-std::map<std::string, std::pair<std::thread::id, int>> socketDictionary;
-
-std::mutex threadDictionary_mutex;
-std::unordered_map<std::thread::id, pthread_t> threadDictionary;
-
+std::map<std::string, int> socketDictionary;
 
 struct CharNode {
     char character;
@@ -376,7 +357,6 @@ std::unordered_map<int, bool> forceLogoutDictionary;
 // Cleaning up session-related storage structures
 void cleanup(std::string clientUsername, std::thread::id thread_id, int client_fd) {
     std::cout << "killing thread :" << thread_id << std::endl;
-    threadDictionary.erase(thread_id);
     queuedOperationsDictionary.erase(client_fd);
     socketDictionary.erase(clientUsername);
     close(client_fd);

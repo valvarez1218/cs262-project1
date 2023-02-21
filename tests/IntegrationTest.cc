@@ -183,7 +183,7 @@ TEST(MessageSizeTest, CheckSizeOfMessage) {
 	notificationsList.push_back(notification2);
 	notificationsList.push_back(notification3);
 	notificationsList.push_back(notification4);
-	QueryNotificationReply query_notifications_reply(numberUsers, notificationsList);
+	QueryNotificationReply query_notifications_reply(numberUsers);
 	EXPECT_EQ(sizeof(query_notifications_reply), sizeof(int)+sizeof(opCode)+4*sizeof(std::pair<char[g_UsernameLimit], char>));
 
 	EXPECT_EQ(sizeof(ReturnMessage), g_UsernameLimit+g_MessageLimit);
@@ -193,8 +193,8 @@ TEST(MessageSizeTest, CheckSizeOfMessage) {
 	ReturnMessage msg3;
 	ReturnMessage msg4;
 	std::vector<ReturnMessage> messageList{msg1, msg2, msg3, msg4};
-	QueryMessagesReply query_messages_reply(4, -1, messageList);
-	EXPECT_EQ(sizeof(query_messages_reply), 2*sizeof(int)+sizeof(opCode)+4*sizeof(ReturnMessage));
+	QueryMessagesReply query_messages_reply(4, -1);
+	EXPECT_EQ(sizeof(query_messages_reply), 2*sizeof(char)+sizeof(opCode));
 
 	EXPECT_EQ(sizeof(ForceLogOutReply), sizeof(opCode));
 }
