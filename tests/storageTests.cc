@@ -68,6 +68,31 @@ TEST(ConversationsDictionaryTest, MultiThreadedModifications) {
   EXPECT_EQ(testConversationsDictionary.conversations[recipient][sender], 0);
 }
 
+TEST(ConversationsDictionaryText, GetNotifications) {
+  char username1[g_UsernameLimit] = "carolyn";
+  char username2[g_UsernameLimit] = "victor";
+  char message[g_MessageLimit] = "Hello";
+
+  UserPair testpair(username1, username2);
+  std::unordered_map<UserPair, StoredMessages> testMessagesDictionary;
+
+  testMessagesDictionary[testpair].addMessage(username1, username2, message);
+  testMessagesDictionary[testpair].addMessage(username1, username2, message);
+  testMessagesDictionary[testpair].addMessage(username2, username1, message);
+  testMessagesDictionary[testpair].addMessage(username2, username1, message);
+  testMessagesDictionary[testpair].addMessage(username2, username1, message);
+
+  std::vector<std::pair<char [g_UsernameLimit], char> > username1Notifications = conversationsDictionary.getNotifications(username1);
+
+  EXPECT_EQ(std::string(username1Notifications[0].first), std::string(username2));
+  EXPECT_EQ(username1Notifications[0].second, 3);
+
+  std::vector<std::pair<char [g_UsernameLimit], char> > username2Notifications = conversationsDictionary.getNotifications(username2);
+
+  EXPECT_EQ(std::string(username2Notifications[0].first), std::string(username1));
+  EXPECT_EQ(username2Notifications[0].second, 2);
+
+}
 
 TEST(MessagesDictionaryTest, UserPairExpectations) {
   char username1[g_UsernameLimit] = "CaRolyn";

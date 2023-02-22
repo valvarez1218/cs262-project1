@@ -55,6 +55,8 @@ struct ConversationsDictionary {
 
 };
 
+ConversationsDictionary conversationsDictionary;
+
 // Messages dictionary key, consists of two usernames.
 struct UserPair {
     std::string smallerUsername; // lexicographically smaller username.
@@ -339,8 +341,6 @@ struct UserTrie {
 };
 
 // Global declarations for the server
-ConversationsDictionary conversationsDictionary;
-
 std::unordered_map<UserPair, StoredMessages> messagesDictionary;
 
 std::mutex socketDictionary_mutex;
