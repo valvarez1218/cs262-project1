@@ -191,10 +191,6 @@ struct std::hash<UserPair>
     }
 };
 
-std::unordered_map<UserPair, StoredMessages> messagesDictionary;
-
-std::mutex socketDictionary_mutex;
-std::map<std::string, int> socketDictionary;
 
 // Nodes userd in UserTrie, each node stores the 
 //      character it corresponds to, its children and 
