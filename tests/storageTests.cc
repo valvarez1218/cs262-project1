@@ -332,6 +332,7 @@ TEST(UsernameTrieStorage, DeleteUser) {
 
   EXPECT_EQ(usernameTrie.userExists("Victor"), false);
   EXPECT_EQ(usernameTrie.userExists("Carlos"), false);
+  EXPECT_EQ(usernameTrie.userExists("Carolyn"), true);
 }
 
 int main(int argc, char* argv[]) {

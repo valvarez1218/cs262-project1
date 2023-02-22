@@ -180,7 +180,7 @@ struct StoredMessages {
 };
 
 
-// Allows UserPairs to be used as keys to dictionaries
+// Custom hash function for our struct UserPair, simply hashes both names together
 template<>
 struct std::hash<UserPair>
 {
@@ -191,7 +191,15 @@ struct std::hash<UserPair>
     }
 };
 
-// Trie node.
+std::unordered_map<UserPair, StoredMessages> messagesDictionary;
+
+std::mutex socketDictionary_mutex;
+std::map<std::string, int> socketDictionary;
+
+// Nodes userd in UserTrie, each node stores the 
+//      character it corresponds to, its children and 
+//      whether or not it ends the username of a registered
+//      user
 struct CharNode {
     char character;
     std::unordered_map<char, CharNode*> children;
@@ -207,8 +215,10 @@ struct CharNode {
 
 std::unordered_map<CharNode*, std::string> userPasswordMap;
 
+// Trie data structure whose nodes correspond to characters
 struct UserTrie {
     private:
+        // map from characters to root nodes
         std::unordered_map<char, CharNode*> roots;
 
     public:
@@ -242,7 +252,8 @@ struct UserTrie {
             userPasswordMap[currNode] = password;
         }
 
-        // Returns a vector of users with given prefix, if none found returns a runtime exception
+        // Returns a vector of users with given prefix, if none found prints "No usernames found" and
+        //      return empty vector
         std::vector<std::string> returnUsersWithPrefix(std::string usernamePrefix) {
             if (usernamePrefix.size() == 0) {
                 // Perform DFS starting at deepest node
@@ -266,6 +277,9 @@ struct UserTrie {
             return usersFound;
         }
 
+        // Helper function in addUser and returnUsersWithPrefix; returns a pointer to the node
+        //      in the Trie that is deepest corresponding to the longest prefix of given username
+        //      also returns index of the character we got to in the username
         std::pair<CharNode*, int> findLongestMatchingPrefix(std::string username) {
             if (roots.find(username[0]) == roots.end()) {
                 return std::make_pair(nullptr, -1);
@@ -306,7 +320,9 @@ struct UserTrie {
             }
         }
 
-        // Check if a user exists given a username.
+        // Finds the deepest node in the Trie for a given username, if the node has isTerminal set
+        //      to true return true, otherwise the given username does not correspond to a user
+        //      in our Trie
         bool userExists(std::string user) {
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(user);
             if (nodeIdxPair.first == nullptr || nodeIdxPair.second < user.size()-1 || !nodeIdxPair.first->isTerminal) {
@@ -316,7 +332,9 @@ struct UserTrie {
             return nodeIdxPair.first->isTerminal;
         }
 
-        // Verify a username and password.
+
+        // Given a username and password, finds the deepest node which should have isTerminal set to true,
+        //      then checks that the password matches the password stored in the userPasswordsMap
         bool verifyUser(std::string username, std::string password) {
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
             if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size()-1 || !nodeIdxPair.first->isTerminal) {
@@ -327,7 +345,8 @@ struct UserTrie {
             return password == userPasswordMap[nodeIdxPair.first];
         }
 
-        // Delete a user from the trie.
+
+        // Deletes a user from the Trie by setting their isTerminal value to false
         void deleteUser(std::string username) {
             std::pair<CharNode*, int> nodeIdxPair = findLongestMatchingPrefix(username);
             if (nodeIdxPair.first == nullptr || nodeIdxPair.second < username.size()-1 || !nodeIdxPair.first->isTerminal) {
