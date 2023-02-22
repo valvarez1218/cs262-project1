@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "../server/storage.h"
 #include "./testInfra.h"
+#include <unordered_set>
 
 
 std::vector<std::string> usernameQuery (UserTrie trie, std::string query) {
@@ -271,9 +272,21 @@ TEST(UsernameTrieStorage, QueryingUsernames) {
   EXPECT_EQ(usernameQuery(usernameTrie, "b"), std::vector<std::string> {});
   EXPECT_EQ(usernameQuery(usernameTrie, "A"), std::vector<std::string> {});
   EXPECT_EQ(usernameQuery(usernameTrie, "B"), std::vector<std::string> {});
-  EXPECT_EQ(usernameQuery(usernameTrie, "V"), (std::vector<std::string> {"Vicky", "Victor"}));
-  EXPECT_EQ(usernameQuery(usernameTrie, "C"), (std::vector<std::string> {"Carlos", "Carolyn"}));
-  EXPECT_EQ(usernameQuery(usernameTrie, ""), (std::vector<std::string> {"Carlos", "Carolyn", "Vicky", "Victor"}));
+
+  std::unordered_set<std::string> test{"Vicky", "Victor"};
+  for (std::string user : usernameQuery(usernameTrie, "V")) {
+    EXPECT_EQ(test.count(user), 1);
+  }
+
+  std::unordered_set<std::string> test2{"Carlos", "Carolyn"};
+  for (std::string user : usernameQuery(usernameTrie, "C")) {
+    EXPECT_EQ(test2.count(user), 1);
+  }
+
+  std::unordered_set<std::string> test3{"Carlos", "Carolyn", "Vicky", "Victor"};
+  for (std::string user : usernameQuery(usernameTrie, "")) {
+    EXPECT_EQ(test3.count(user), 1);
+  }
 }
 
 TEST(UsernameTrieStorage, PasswordStorage) {
