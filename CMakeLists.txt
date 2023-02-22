@@ -26,8 +26,8 @@ add_executable(
 )
 
 add_executable(
-  IntegrationTest
-  ./tests/IntegrationTest.cc
+  messageSizeTests
+  ./tests/messageSizeTests.cc
 )
 
 target_link_libraries(
@@ -43,7 +43,7 @@ target_link_libraries(
 )
 
 target_link_libraries(
-  IntegrationTest
+  messageSizeTests
   gtest
   gtest_main
 )
@@ -52,4 +52,4 @@ include(GoogleTest)
 # gtest_discover_tests(storageTests)
 gtest_add_tests(TARGET storageTests)
 gtest_add_tests(TARGET clientTests)
-gtest_add_tests(TARGET IntegrationTest)
+gtest_add_tests(TARGET messageSizeTests)

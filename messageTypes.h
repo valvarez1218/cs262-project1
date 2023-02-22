@@ -44,10 +44,6 @@ const size_t g_PasswordLimit = 32;
 const size_t g_MessageLimit = 1000;
 const size_t g_MessageQueryLimit = 20;
 
-// const size_t g_ClientUsernameLimit = g_UsernameLimit - 1;
-// const size_t g_ClientPasswordLimit = g_PasswordLimit - 1;
-// const size_t g_ClientMessageLimit = g_MessageLimit - 1;
-
 const std::string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 // check that character follows allowed alphabet
